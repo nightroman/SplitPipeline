@@ -1,0 +1,20 @@
+﻿
+TOPIC
+    about_SplitPipeline
+
+SHORT DESCRIPTION
+    SplitPipeline - Online Parallel Processing in PowerShell
+
+LONG DESCRIPTION
+    The module provides the only cmdlet Split-Pipeline. It splits pipeline
+    input in real time and processes input parts by parallel pipelines. The
+    algorithm works without having the entire input available. Input can be
+    very large or even infinite.
+
+    Get help:
+    PS> Import-Module SplitPipeline
+    PS> help -full Split-Pipeline
+
+SEE ALSO
+    Project site: https://github.com/nightroman/SplitPipeline
+    Split-Pipeline
