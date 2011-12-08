@@ -34,7 +34,8 @@ module directories (see `$env:PSModulePath`). For example:
 
 **Step 4:**
 
-Try these commands with the same processing block emulating latent jobs:
+Try these three commands performing the same job simulating long but not
+processor consuming operations of each item:
 
     1..10 | . {process{$_; sleep 1}}
     1..10 | Split-Pipeline {process{$_; sleep 1}}
@@ -49,9 +50,10 @@ not guarantee the same order) but performance is different. Let's measure it:
 
 The first command takes about 10 seconds.
 
-Performance of the second command depends on the number of processors. With 2
-processors the command takes about 6 seconds.
+Performance of the second command depends on the number of processors. For
+example, with 2 processors it takes about 6 seconds.
 
 The third command takes about 2 seconds. The number of processors is not very
-important for jobs not actually consuming much processor resources. The split
-count is important.
+important for such sleeping jobs. The split count is important, increasing it
+to some extent improves overall performance. NOTE: As for processor intensive
+jobs, the split count normally should not exceed the number of processors.

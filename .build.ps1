@@ -65,8 +65,7 @@ task TestHelp Help, {
 # Build and show help.
 task ShowHelp Help, {
 	Import-Module SplitPipeline
-	Get-Help Split-Pipeline -Full
-	Get-Help about_SplitPipeline
+	. { Get-Help Split-Pipeline -Full; Get-Help about_SplitPipeline } | more
 }
 
 # Call tests.

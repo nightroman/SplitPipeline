@@ -18,6 +18,7 @@ limitations under the License.
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Threading;
@@ -49,6 +50,11 @@ namespace SplitPipeline.Commands
 		public int Load { get; set; }
 		[Parameter]
 		public int Limit { get; set; }
+		[Parameter]
+		[ValidateCount(1, 2)]
+		public double[] Cost { get; set; }
+		[Parameter]
+		public SwitchParameter Auto { get; set; }
 		[Parameter(ValueFromPipeline = true)]
 		public PSObject InputObject { get; set; }
 		readonly InitialSessionState _iss = InitialSessionState.CreateDefault();
@@ -57,8 +63,71 @@ namespace SplitPipeline.Commands
 		Job[] _jobs;
 		int _infoItemCount;
 		int _infoPartCount;
+		int _infoPipeCount;
 		int _infoWaitCount;
 		int _infoMaxQueue;
+		Stopwatch _infoTimeTotal = Stopwatch.StartNew();
+		Stopwatch _infoTimeInner = new Stopwatch();
+		long _lastInnerTicks;
+		long _lastTotalTicks;
+		int _lastTakeCount;
+		double MaxCost = 0.05;
+		double MinCost = 0.01;
+		const double LoadDelta = 0.05;
+		protected override void BeginProcessing()
+		{
+			if (Cost != null)
+			{
+				MaxCost = Cost[0] / 100;
+				MinCost = Cost.Length > 1 ? Cost[1] / 100 : 0;
+			}
+
+			_Script = Script.ToString();
+			if (Begin != null)
+				_Begin = Begin.ToString();
+			if (End != null)
+				_End = End.ToString();
+			if (Finally != null)
+				_Finally = Finally.ToString();
+
+			if (Count <= 0)
+				Count = Environment.ProcessorCount;
+
+			if (Load <= 0)
+				Load = 1;
+
+			if (Limit <= 0)
+				Limit = int.MaxValue;
+			else if (Limit < Load)
+				Limit = Load;
+
+			if (Queue <= 0)
+				Queue = int.MaxValue;
+			else if (Queue < Load)
+				Queue = Load;
+
+			if (Module != null)
+				_iss.ImportPSModule(Module);
+
+			if (Variable != null)
+			{
+				foreach (var name in Variable)
+					_iss.Variables.Add(new SessionStateVariableEntry(name, GetVariableValue(name), string.Empty));
+			}
+
+			if (Function != null)
+			{
+				foreach (var name in Function)
+				{
+					var function = (FunctionInfo)SessionState.InvokeCommand.GetCommand(name, CommandTypes.Function);
+					_iss.Commands.Add(new SessionStateFunctionEntry(name, function.Definition));
+				}
+			}
+
+			_jobs = new Job[Count];
+
+			_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
+		}
 		void Close(string end)
 		{
 			if (_jobs == null)
@@ -90,7 +159,7 @@ namespace SplitPipeline.Commands
 							catch (Exception e) { exceptions.Add(e); }
 						}
 					}
-					
+
 					foreach (var e in exceptions)
 						WriteWarning("Exception in Finally: " + e.Message);
 				}
@@ -106,56 +175,18 @@ namespace SplitPipeline.Commands
 			WriteVerbose(string.Format(@"
 Item count : {0}
 Part count : {1}
-Wait count : {2}
-Max queue  : {3}
-", _infoItemCount, _infoPartCount, _infoWaitCount, _infoMaxQueue));
-		}
-		protected override void BeginProcessing()
-		{
-			_Script = Script.ToString();
-			if (Begin != null)
-				_Begin = Begin.ToString();
-			if (End != null)
-				_End = End.ToString();
-			if (Finally != null)
-				_Finally = Finally.ToString();
-
-			if (Count <= 0)
-				Count = Environment.ProcessorCount;
-
-			if (Load <= 0)
-				Load = 1;
-
-			if (Limit < Load)
-				Limit = int.MaxValue;
-
-			if (Queue <= 0)
-				Queue = int.MaxValue;
-			else if (Queue < Load * Count)
-				Queue = Load * Count;
-
-			if (Module != null)
-				_iss.ImportPSModule(Module);
-
-			if (Variable != null)
-			{
-				foreach (var name in Variable)
-					_iss.Variables.Add(new SessionStateVariableEntry(name, GetVariableValue(name), string.Empty));
-			}
-
-			if (Function != null)
-			{
-				foreach (var name in Function)
-				{
-					var function = (FunctionInfo)SessionState.InvokeCommand.GetCommand(name, CommandTypes.Function);
-					_iss.Commands.Add(new SessionStateFunctionEntry(name, function.Definition));
-				}
-			}
-
-			_jobs = new Job[Count];
+Pipe count : {2}
+Wait count : {3}
+Load size  : {4}
+Max queue  : {5}
+Inner time : {6}
+Total time : {7}
+", _infoItemCount, _infoPartCount, _infoPipeCount, _infoWaitCount, Load, _infoMaxQueue,
+ _infoTimeInner.Elapsed, _infoTimeTotal.Elapsed));
 		}
 		protected override void EndProcessing()
 		{
+			WriteVerbose(string.Format("EndProcessing: Items: {0}", _input.Count));
 			try
 			{
 				Take(true);
@@ -173,7 +204,9 @@ Max queue  : {3}
 		}
 		protected override void ProcessRecord()
 		{
+			_infoTimeInner.Start();
 			++_infoItemCount;
+
 			try
 			{
 				Take(false);
@@ -195,6 +228,42 @@ Max queue  : {3}
 				else if (_input.Count >= Load)
 				{
 					Feed();
+
+					if (Auto && _lastTakeCount > _infoPipeCount)
+					{
+						_lastTakeCount = 0;
+						long innerTicks = _infoTimeInner.ElapsedTicks - _lastInnerTicks;
+						long totalTicks = _infoTimeTotal.ElapsedTicks - _lastTotalTicks;
+						_lastInnerTicks = _infoTimeInner.ElapsedTicks;
+						_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
+						double ratio = (double)innerTicks / totalTicks;
+
+						if (ratio > MaxCost)
+						{
+							var newLoad = (int)(Load * (1 + ratio));
+							if (newLoad == Load)
+								++newLoad;
+							if (newLoad > Limit)
+								newLoad = Limit;
+
+							if (newLoad > Queue)
+								newLoad = Queue;
+
+							Load = newLoad;
+							WriteVerbose(string.Format("Pipes: {0}, Cost: {2:p2}, +Load: {1}", _infoPipeCount, Load, ratio));
+						}
+						else if (ratio < MinCost)
+						{
+							var newLoad = (int)(Load * (1 - LoadDelta));
+							if (newLoad == Load)
+								--newLoad;
+							if (newLoad < 1)
+								newLoad = 1;
+
+							Load = newLoad;
+							WriteVerbose(string.Format("Pipes: {0}, Cost: {2:p2}, -Load: {1}", _infoPipeCount, Load, ratio));
+						}
+					}
 				}
 			}
 			catch
@@ -202,6 +271,8 @@ Max queue  : {3}
 				Close(null);
 				throw;
 			}
+
+			_infoTimeInner.Stop();
 		}
 		void FeedJob(Job job, int count)
 		{
@@ -260,7 +331,17 @@ Max queue  : {3}
 				var job = _jobs[i];
 				if (job == null)
 				{
+					++_infoPipeCount;
+
+					bool timing = _infoTimeInner.IsRunning;
+					if (timing)
+						_infoTimeInner.Stop();
+
 					job = new Job(RunspaceFactory.CreateRunspace(_iss));
+
+					if (timing)
+						_infoTimeInner.Start();
+
 					WriteJob(job, job.Begin(_Script, _Begin));
 					_jobs[i] = job;
 				}
@@ -299,6 +380,7 @@ Max queue  : {3}
 					}
 
 					WriteJob(job, job.Take());
+					++_lastTakeCount;
 				}
 
 				if (!end || _input.Count == 0)
@@ -311,6 +393,10 @@ Max queue  : {3}
 		{
 			++_infoWaitCount;
 
+			var timing = _infoTimeInner.IsRunning;
+			if (timing)
+				_infoTimeInner.Stop();
+
 			var wait = new List<WaitHandle>(Count);
 			foreach (var job in _jobs)
 				if (job != null)
@@ -318,6 +404,9 @@ Max queue  : {3}
 
 			if (wait.Count > 0)
 				WaitHandle.WaitAny(wait.ToArray());
+
+			if (timing)
+				_infoTimeInner.Start();
 		}
 	}
 }

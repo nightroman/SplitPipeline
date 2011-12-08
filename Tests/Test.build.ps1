@@ -97,11 +97,11 @@ task ImportVariable {
 task LastTakesAll {
 	$$ = 1..9 | Split-Pipeline -Count 2 {
 		@($input).Count
-		Start-Sleep -Milliseconds 200
+		Start-Sleep -Milliseconds 250
 	}
 	# 4 parts: 1, 1, 4, 5. At first 2 pipes are loaded by 1. Next part size is
 	# 3 ~ 7/2. The last takes all.
-	assert ($$.Count -eq 4)
+	assert ($$.Count -eq 4) $$.Count
 	assert ($$[0] -eq 1)
 	assert ($$[1] -eq 1)
 	assert ($$[2] -eq 3)
