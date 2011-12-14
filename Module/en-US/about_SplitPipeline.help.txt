@@ -3,7 +3,7 @@ TOPIC
     about_SplitPipeline
 
 SHORT DESCRIPTION
-    SplitPipeline - Online Parallel Processing in PowerShell
+    SplitPipeline - Parallel Data Processing in PowerShell
 
 LONG DESCRIPTION
     The module provides the only cmdlet Split-Pipeline. It splits pipeline

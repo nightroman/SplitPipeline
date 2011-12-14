@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
@@ -23,12 +24,13 @@ using System.Threading;
 
 namespace SplitPipeline
 {
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
 	class Job
 	{
 		readonly PowerShell _posh = PowerShell.Create();
+		PSDataCollection<PSObject> _input;
 		IAsyncResult _result;
-		bool _done;
-		public bool Done { get { return _done; } }
+		public bool Done { get { return _input == null; } }
 		public PSInvocationState State { get { return _posh.InvocationStateInfo.State; } }
 		public PSDataStreams Streams { get { return _posh.Streams; } }
 		public WaitHandle Wait { get { return _result.AsyncWaitHandle; } }
@@ -62,20 +64,29 @@ namespace SplitPipeline
 			_posh.AddScript(script, false);
 			_posh.Invoke();
 		}
-		public void Feed(PSDataCollection<PSObject> input)
+		public void Feed(Queue<PSObject> input, int count)
 		{
-			input.Complete();
-			_done = false;
-			_result = _posh.BeginInvoke(input);
+			_input = new PSDataCollection<PSObject>(count);
+			while (--count >= 0)
+				_input.Add(input.Dequeue());
+			_input.Complete();
+
+			_result = _posh.BeginInvoke(_input);
 		}
 		public PSDataCollection<PSObject> Take()
 		{
-			_done = true;
-			
-			if (_result == null)
-				return new PSDataCollection<PSObject>();
-			
-			return _posh.EndInvoke(_result);
+			try
+			{
+				if (_result == null)
+					return null;
+
+				return _posh.EndInvoke(_result);
+			}
+			finally
+			{
+				_input.Dispose();
+				_input = null;
+			}
 		}
 		public void Close()
 		{

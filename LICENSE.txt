@@ -1,4 +1,4 @@
-﻿SplitPipeline - Online Parallel Processing in PowerShell
+﻿SplitPipeline - Parallel Data Processing in PowerShell
 Copyright (c) 2011 Roman Kuzmin
 
 Licensed under the Apache License, Version 2.0 (the "License");

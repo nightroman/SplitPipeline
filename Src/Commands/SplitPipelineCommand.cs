@@ -36,11 +36,11 @@ namespace SplitPipeline.Commands
 		public ScriptBlock End { get; set; }
 		[Parameter]
 		public ScriptBlock Finally { get; set; }
-		[Parameter]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
 		public string[] Variable { get; set; }
-		[Parameter]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
 		public string[] Function { get; set; }
-		[Parameter]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
 		public string[] Module { get; set; }
 		[Parameter]
 		public int Count { get; set; }
@@ -50,7 +50,7 @@ namespace SplitPipeline.Commands
 		public int Load { get; set; }
 		[Parameter]
 		public int Limit { get; set; }
-		[Parameter]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
 		[ValidateCount(1, 2)]
 		public double[] Cost { get; set; }
 		[Parameter]
@@ -70,7 +70,6 @@ namespace SplitPipeline.Commands
 		Stopwatch _infoTimeInner = new Stopwatch();
 		long _lastInnerTicks;
 		long _lastTotalTicks;
-		int _lastTakeCount;
 		double MaxCost = 0.05;
 		double MinCost = 0.01;
 		const double LoadDelta = 0.05;
@@ -128,6 +127,7 @@ namespace SplitPipeline.Commands
 
 			_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
 		}
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
 		void Close(string end)
 		{
 			if (_jobs == null)
@@ -172,7 +172,7 @@ namespace SplitPipeline.Commands
 				_jobs = null;
 			}
 
-			WriteVerbose(string.Format(@"
+			WriteVerbose(string.Format(null, @"
 Item count : {0}
 Part count : {1}
 Pipe count : {2}
@@ -186,7 +186,7 @@ Total time : {7}
 		}
 		protected override void EndProcessing()
 		{
-			WriteVerbose(string.Format("EndProcessing: Items: {0}", _input.Count));
+			WriteVerbose(string.Format(null, "End: Items: {0}", _input.Count));
 			try
 			{
 				Take(true);
@@ -228,42 +228,6 @@ Total time : {7}
 				else if (_input.Count >= Load)
 				{
 					Feed();
-
-					if (Auto && _lastTakeCount > _infoPipeCount)
-					{
-						_lastTakeCount = 0;
-						long innerTicks = _infoTimeInner.ElapsedTicks - _lastInnerTicks;
-						long totalTicks = _infoTimeTotal.ElapsedTicks - _lastTotalTicks;
-						_lastInnerTicks = _infoTimeInner.ElapsedTicks;
-						_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
-						double ratio = (double)innerTicks / totalTicks;
-
-						if (ratio > MaxCost)
-						{
-							var newLoad = (int)(Load * (1 + ratio));
-							if (newLoad == Load)
-								++newLoad;
-							if (newLoad > Limit)
-								newLoad = Limit;
-
-							if (newLoad > Queue)
-								newLoad = Queue;
-
-							Load = newLoad;
-							WriteVerbose(string.Format("Pipes: {0}, Cost: {2:p2}, +Load: {1}", _infoPipeCount, Load, ratio));
-						}
-						else if (ratio < MinCost)
-						{
-							var newLoad = (int)(Load * (1 - LoadDelta));
-							if (newLoad == Load)
-								--newLoad;
-							if (newLoad < 1)
-								newLoad = 1;
-
-							Load = newLoad;
-							WriteVerbose(string.Format("Pipes: {0}, Cost: {2:p2}, -Load: {1}", _infoPipeCount, Load, ratio));
-						}
-					}
 				}
 			}
 			catch
@@ -277,10 +241,7 @@ Total time : {7}
 		void FeedJob(Job job, int count)
 		{
 			++_infoPartCount;
-			var input = new PSDataCollection<PSObject>();
-			while (--count >= 0)
-				input.Add(_input.Dequeue());
-			job.Feed(input);
+			job.Feed(_input, count);
 		}
 		void WriteJob(Job job, ICollection<PSObject> result)
 		{
@@ -309,6 +270,7 @@ Total time : {7}
 				streams.Error.Clear();
 			}
 		}
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope")]
 		void Feed()
 		{
 			int ready = 0;
@@ -342,7 +304,10 @@ Total time : {7}
 					if (timing)
 						_infoTimeInner.Start();
 
-					WriteJob(job, job.Begin(_Script, _Begin));
+					var result = job.Begin(_Script, _Begin);
+					if (_Begin != null)
+						WriteJob(job, result);
+					
 					_jobs[i] = job;
 				}
 				else if (!job.Done)
@@ -363,6 +328,39 @@ Total time : {7}
 					break;
 			}
 		}
+		void Tune()
+		{
+			long innerTicks = _infoTimeInner.ElapsedTicks - _lastInnerTicks;
+			long totalTicks = _infoTimeTotal.ElapsedTicks - _lastTotalTicks;
+			_lastInnerTicks = _infoTimeInner.ElapsedTicks;
+			_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
+			double ratio = (double)innerTicks / totalTicks;
+
+			if (ratio > MaxCost)
+			{
+				var newLoad = (int)(Load * (1 + ratio));
+				if (newLoad == Load)
+					++newLoad;
+				if (newLoad > Limit)
+					newLoad = Limit;
+				if (newLoad > Queue)
+					newLoad = Queue;
+
+				Load = newLoad;
+				WriteVerbose(string.Format(null, "Pipes: {0}, Cost: {2:p2}, +Load: {1}", _infoPipeCount, Load, ratio));
+			}
+			else if (ratio < MinCost)
+			{
+				var newLoad = (int)(Load * (1 - LoadDelta));
+				if (newLoad == Load)
+					--newLoad;
+				if (newLoad < 1)
+					newLoad = 1;
+
+				Load = newLoad;
+				WriteVerbose(string.Format(null, "Pipes: {0}, Cost: {2:p2}, -Load: {1}", _infoPipeCount, Load, ratio));
+			}
+		}
 		void Take(bool end)
 		{
 			for (; ; )
@@ -380,7 +378,8 @@ Total time : {7}
 					}
 
 					WriteJob(job, job.Take());
-					++_lastTakeCount;
+					if (Auto && !end)
+						Tune();
 				}
 
 				if (!end || _input.Count == 0)

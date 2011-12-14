@@ -4,8 +4,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyProduct("SplitPipeline")]
-[assembly: AssemblyVersion("0.1.0")]
-[assembly: AssemblyTitle("SplitPipeline - Online Parallel Processing in PowerShell")]
+[assembly: AssemblyVersion("0.1.1")]
+[assembly: AssemblyTitle("SplitPipeline - Parallel Data Processing in PowerShell")]
 [assembly: AssemblyCompany("https://github.com/nightroman/SplitPipeline")]
 [assembly: AssemblyCopyright("Copyright (c) 2011 Roman Kuzmin")]
 

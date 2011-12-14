@@ -2,23 +2,24 @@
 Import-Module SplitPipeline
 
 task Finally1 {
-	$$ = ''
+	$1 = ''
 	try {
 		1..10 | Split-Pipeline -Count 2 -Limit 1 `
 		-Script {throw 'Throw in Script'} `
 		-Finally {throw 'Throw in Finally'}
 	}
-	catch { $$ = "$_" }
-	assert ($$ -eq 'Throw in Script')
+	catch { $1 = "$_" }
+	assert ($1 -eq 'Throw in Script')
 }
 
 task Finally2 {
-	$result = 1..2 | Split-Pipeline -Count 2 -Limit 1 `
-	-Script {process{$_}} `
-	-Finally {throw 'Throw in Finally'}
+	$result = @(
+		1..2 | Split-Pipeline -Count 2 -Limit 1 `
+		-Script {process{$_}} `
+		-Finally {throw 'Throw in Finally'}
+	)
 
-	$result
-	assert ($result.Count -eq 2)
+	assert ($result.Count -eq 2) $result.Count
 }
 
 task BeginProcessEnd {
@@ -52,16 +53,19 @@ task BeginProcessEnd {
 	}
 	$result
 
-	# 2 'begin/end split' due to -Count 2
-	assert (($result -eq 'begin split').Count -eq 2)
-	assert (($result -eq 'end split').Count -eq 2)
+	# 1 or 2 'begin/end split' due to -Count 2
+	$begin_split = ($result -eq 'begin split').Count
+	$end_split = ($result -eq 'end split').Count
+	assert ($begin_split -eq 1 -or $begin_split -eq 2) $begin_split
+	assert ($end_split -eq 1 -or $end_split -eq 2) $end_split
+	assert ($begin_split -eq $end_split)
 
 	# 4 'begin/end part' due to 4 items and -Limit 1
 	assert (($result -eq 'begin part').Count -eq 4)
 	assert (($result -eq 'end part').Count -eq 4)
 
-	# + 4 items 1..4 -> 16
-	assert ($result.Count -eq 16)
+	# all
+	assert ($result.Count -eq (12 + 2 * $end_split))
 }
 
 task ImportModule {
@@ -95,22 +99,22 @@ task ImportVariable {
 
 #! Sleep long enough in order to get these results.
 task LastTakesAll {
-	$$ = 1..9 | Split-Pipeline -Count 2 {
+	$1 = 1..9 | Split-Pipeline -Count 2 {
 		@($input).Count
 		Start-Sleep -Milliseconds 250
 	}
 	# 4 parts: 1, 1, 4, 5. At first 2 pipes are loaded by 1. Next part size is
 	# 3 ~ 7/2. The last takes all.
-	assert ($$.Count -eq 4) $$.Count
-	assert ($$[0] -eq 1)
-	assert ($$[1] -eq 1)
-	assert ($$[2] -eq 3)
-	assert ($$[3] -eq 4)
+	assert ($1.Count -eq 4) $1.Count
+	assert ($1[0] -eq 1)
+	assert ($1[1] -eq 1)
+	assert ($1[2] -eq 3)
+	assert ($1[3] -eq 4)
 }
 
 task SmallQueue {
-	$$ = 1..111 | Split-Pipeline -Load 20 -Queue 10 {
+	$1 = 1..111 | Split-Pipeline -Load 20 -Queue 10 {
 		process {$_}
 	}
-	assert ($$.Count -eq 111)
+	assert ($1.Count -eq 111)
 }

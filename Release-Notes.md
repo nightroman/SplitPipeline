@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.1.1
+
+Tweaks, including related to PowerShell V3 CTP2.
+
 ## v0.1.0
 
 New parameter Auto is used in order to select Load values automatically during
