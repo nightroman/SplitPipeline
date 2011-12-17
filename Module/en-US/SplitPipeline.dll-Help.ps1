@@ -31,13 +31,11 @@ Import-Module SplitPipeline
 	then incoming input items are enqueued for later processing. If the queue
 	size hits the limit Queue then the algorithm waits for a ready pipeline.
 
-	NOTES
+	Input items are not necessarily processed in the same order as they come
+	into the cmdlet. But output can be ordered according to input, use Order.
 
-	* Input items are not necessarily processed in the same order as they come
-	into the cmdlet.
-
-	* The cmdlet is not recommended for scenarios with slow input, that is when
-	input items comes slower than they are processed by a script.
+	The cmdlet is not recommended for scenarios with slow input, that is when
+	input items arrive slower than they are processed by the specified script.
 '@
 	parameters = @{
 		Script = @'
@@ -91,8 +89,8 @@ Import-Module SplitPipeline
 		Auto = @'
 		Tells to tune some parameters automatically during processing in order
 		to increase utilization of pipelines and reduce overhead. This is done
-		normally by increasing the value of Load. Use Verbose in order to view
-		some details.
+		normally by increasing the value of Load. Use Verbose in order to show
+		some details during and after processing.
 
 		Note that using of a reasonable initial Load value known from practice
 		may be still useful with Auto, the algorithm may work effectively from
@@ -130,6 +128,10 @@ Import-Module SplitPipeline
 '@
 		Module = @'
 		Modules imported to parallel runspaces.
+'@
+		Order = @'
+		Tells to output part results in the same order as input parts arrive.
+		The algorithm may work slightly slower.
 '@
 		InputObject = @'
 		Input objects processed by parallel pipelines. Do not use this

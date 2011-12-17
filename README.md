@@ -42,7 +42,8 @@ processor consuming operations of each item:
     1..10 | Split-Pipeline -Count 10 {process{$_; sleep 1}}
 
 Output of all commands is the same, numbers from 1 to 10 (Split-Pipeline does
-not guarantee the same order) but performance is different. Let's measure it:
+not guarantee the same order without the switch `Order`). But consumed times
+are different. Let's measure them:
 
     Measure-Command { 1..10 | . {process{$_; sleep 1}} }
     Measure-Command { 1..10 | Split-Pipeline {process{$_; sleep 1}} }
@@ -55,5 +56,5 @@ example, with 2 processors it takes about 6 seconds.
 
 The third command takes about 2 seconds. The number of processors is not very
 important for such sleeping jobs. The split count is important, increasing it
-to some extent improves overall performance. NOTE: As for processor intensive
-jobs, the split count normally should not exceed the number of processors.
+to some extent improves overall performance. As for intensive jobs, the split
+count normally should not exceed the number of processors.

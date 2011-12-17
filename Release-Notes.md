@@ -1,16 +1,24 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.2.0
+
+New switch `Order` tells to output part results in the same order as input
+parts arrive. Thus, although order of processing is not predictable, output
+order can be made predictable. This feature open doors for more scenarios.
+
+Added checks for `Stopping` in `EndProcessing` (faster stop on `Ctrl+C`).
+
 ## v0.1.1
 
 Tweaks, including related to PowerShell V3 CTP2.
 
 ## v0.1.0
 
-New parameter Auto is used in order to select Load values automatically during
-processing. Use Verbose in order to view some related information. Yet another
-new parameter Cost is used together with Auto; it is not needed in most cases
-and introduced rather for experiments.
+New switch `Auto` is used in order to determine Load values automatically during
+processing. Use `Verbose` in order to view some related information. Yet another
+new parameter `Cost` is used together with `Auto`; it is introduced rather for
+experiments.
 
 ## v0.0.1
 

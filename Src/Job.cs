@@ -30,10 +30,20 @@ namespace SplitPipeline
 		readonly PowerShell _posh = PowerShell.Create();
 		PSDataCollection<PSObject> _input;
 		IAsyncResult _result;
-		public bool Done { get { return _input == null; } }
-		public PSInvocationState State { get { return _posh.InvocationStateInfo.State; } }
 		public PSDataStreams Streams { get { return _posh.Streams; } }
 		public WaitHandle Wait { get { return _result.AsyncWaitHandle; } }
+		public bool IsWorking
+		{
+			get
+			{
+				switch (_posh.InvocationStateInfo.State)
+				{
+					case PSInvocationState.Completed: return false;
+					case PSInvocationState.Failed: return false;
+				}
+				return true;
+			}
+		}
 		public Job(Runspace runspace)
 		{
 			_posh.Runspace = runspace;
@@ -90,7 +100,7 @@ namespace SplitPipeline
 		}
 		public void Close()
 		{
-			if (State == PSInvocationState.Running)
+			if (_posh.InvocationStateInfo.State == PSInvocationState.Running)
 				_posh.Stop();
 
 			_posh.Runspace.Dispose();
