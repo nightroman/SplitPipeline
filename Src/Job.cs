@@ -94,7 +94,6 @@ namespace SplitPipeline
 			}
 			finally
 			{
-				_input.Dispose();
 				_input = null;
 			}
 		}

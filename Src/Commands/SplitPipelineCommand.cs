@@ -57,10 +57,12 @@ namespace SplitPipeline.Commands
 		public SwitchParameter Auto { get; set; }
 		[Parameter]
 		public SwitchParameter Order { get; set; }
+		[Parameter]
+		public SwitchParameter Refill { get; set; }
 		[Parameter(ValueFromPipeline = true)]
 		public PSObject InputObject { get; set; }
 		readonly InitialSessionState _iss = InitialSessionState.CreateDefault();
-		readonly Queue<PSObject> _input = new Queue<PSObject>();
+		readonly Queue<PSObject> _queue = new Queue<PSObject>();
 		readonly LinkedList<Job> _done = new LinkedList<Job>();
 		readonly LinkedList<Job> _work = new LinkedList<Job>();
 		readonly Stopwatch _infoTimeTotal = Stopwatch.StartNew();
@@ -128,6 +130,10 @@ namespace SplitPipeline.Commands
 
 			_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
 		}
+		protected override void StopProcessing()
+		{
+			Close(null);
+		}
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
 		void Close(string end)
 		{
@@ -149,17 +155,15 @@ Item count : {0}
 Part count : {1}
 Pipe count : {2}
 Wait count : {3}
-Load size  : {4}
-Max queue  : {5}
-Inner time : {6}
-Total time : {7}
-", _infoItemCount, _infoPartCount, _done.Count, _infoWaitCount, Load, _infoMaxQueue,
- _infoTimeInner.Elapsed, _infoTimeTotal.Elapsed));
+Max queue  : {4}
+Inner time : {5}
+Total time : {6}
+", _infoItemCount, _infoPartCount, _done.Count, _infoWaitCount, _infoMaxQueue, _infoTimeInner.Elapsed, _infoTimeTotal.Elapsed));
 
 			try
 			{
 				// invoke End
-				if (end != null)
+				if (end != null && !Stopping)
 				{
 					foreach (var job in _done)
 						WriteJob(job, job.End(end));
@@ -190,12 +194,18 @@ Total time : {7}
 		}
 		protected override void EndProcessing()
 		{
-			WriteVerbose(string.Format(null, "End: Items: {0}", _input.Count));
 			_isEnd = true;
+			WriteVerbose(string.Format(null, "End: Items: {0}", _queue.Count));
 
 			try
 			{
-				Take();
+				while (!Stopping && (_queue.Count > 0 || _work.Count > 0))
+				{
+					Take();
+					if (_queue.Count > 0)
+						Feed(true);
+				}
+
 				Close(_End);
 			}
 			catch
@@ -204,49 +214,60 @@ Total time : {7}
 				throw;
 			}
 		}
-		protected override void StopProcessing()
-		{
-			Close(null);
-		}
 		protected override void ProcessRecord()
 		{
-			_infoTimeInner.Start();
 			++_infoItemCount;
 
 			try
 			{
 				Take();
 
-				_input.Enqueue(InputObject);
-				if (_infoMaxQueue < _input.Count)
-					_infoMaxQueue = _input.Count;
+				_queue.Enqueue(InputObject);
+				if (_infoMaxQueue < _queue.Count)
+					_infoMaxQueue = _queue.Count;
 
-				while (_input.Count >= Queue)
-				{
-					if (_work.Count > 0)
-					{
-						Wait();
-						Take();
-					}
+				while (_queue.Count >= Queue)
+					Feed(true);
 
-					Feed();
-				}
-
-				if (_input.Count >= Load)
-					Feed();
+				if (_queue.Count >= Load)
+					Feed(false);
 			}
 			catch
 			{
 				Close(null);
 				throw;
 			}
-
-			_infoTimeInner.Stop();
 		}
 		void WriteJob(Job job, ICollection<PSObject> result)
 		{
-			if (result != null)
-				WriteObject(result, true);
+			if (result != null && result.Count > 0)
+			{
+				if (Refill)
+				{
+					foreach (var it in result)
+					{
+						if (it != null)
+						{
+							var reference = it.BaseObject as PSReference;
+							if (reference == null)
+							{
+								WriteObject(it);
+							}
+							else
+							{
+								++_infoItemCount;
+								_queue.Enqueue(new PSObject(reference.Value));
+								if (_infoMaxQueue < _queue.Count)
+									_infoMaxQueue = _queue.Count;
+							}
+						}
+					}
+				}
+				else
+				{
+					WriteObject(result, true);
+				}
+			}
 
 			var streams = job.Streams;
 			if (streams.Verbose.Count > 0)
@@ -271,44 +292,35 @@ Total time : {7}
 			}
 		}
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope")]
-		void Feed()
+		void Feed(bool force)
 		{
-			int ready = Count - _work.Count;
-			if (ready == 0)
-				return;
+			int ready;
+			while (0 == (ready = Count - _work.Count))
+			{
+				if (!force)
+					return;
 
-			int part = _input.Count / ready;
-			if (part < Load)
-				part = Load;
-
-			if (part > Limit)
-				part = Limit;
+				Wait();
+				Take();
+			}
 
 			do
 			{
-				// the last takes all
-				--ready;
-				if (ready == 0 && _input.Count <= Limit)
-					part = _input.Count;
-				if (part > _input.Count)
-					part = _input.Count;
+				int part = Load;
+				if (part > _queue.Count)
+				{
+					if (!_isEnd)
+						return;
+
+					part = _queue.Count;
+				}
 
 				// ensure the job node
 				LinkedListNode<Job> node = _done.First;
 				if (node == null)
 				{
-					bool timing = _infoTimeInner.IsRunning;
-					if (timing)
-						_infoTimeInner.Stop();
-
 					node = new LinkedListNode<Job>(new Job(RunspaceFactory.CreateRunspace(_iss)));
-
-					var result = node.Value.Begin(_Script, _Begin);
-					if (_Begin != null)
-						WriteJob(node.Value, result);
-					
-					if (timing)
-						_infoTimeInner.Start();
+					WriteJob(node.Value, node.Value.Begin(_Script, _Begin));
 				}
 				else
 				{
@@ -318,55 +330,68 @@ Total time : {7}
 
 				// feed the job
 				++_infoPartCount;
-				node.Value.Feed(_input, part);
+				{
+					_infoTimeInner.Start();
+					node.Value.Feed(_queue, part);
+					_infoTimeInner.Stop();
+				}
 			}
-			while (ready > 0 && _input.Count > 0);
+			while (--ready > 0 && _queue.Count > 0);
 		}
 		void Take()
 		{
 			bool done = false;
-			for (; ; )
+			var node = _work.First;
+			while (node != null)
 			{
-				var node = _work.First;
-				while (node != null)
+				if (Stopping)
+					return;
+
+				if (node.Value.IsWorking)
 				{
-					if (_isEnd)
-					{
-						if (Stopping)
-							return;
-					}
-					else
-					{
-						if (node.Value.IsWorking)
-						{
-							if (Order)
-								break;
+					if (Order)
+						break;
 
-							node = node.Next;
-							continue;
-						}
-					}
+					node = node.Next;
+					continue;
+				}
 
+				// complete the job
+				_infoTimeInner.Start();
+				{
+					done = true;
+					var job = node.Value;
+					WriteJob(job, job.Take());
+
+					// move node, step next
 					var next = node.Next;
 					_work.Remove(node);
 					_done.AddLast(node);
-
-					WriteJob(node.Value, node.Value.Take());
 					node = next;
-					done = true;
 				}
-
-				if (!_isEnd || _input.Count == 0 || Stopping)
-					break;
-
-				Feed();
+				_infoTimeInner.Stop();
 			}
-			
-			if (Auto && done && !_isEnd)
+
+			if (Auto && done)
 				Tune();
 		}
 		void Tune()
 		{
+			if (_isEnd)
+			{
+				if (_queue.Count == 0)
+					return;
+
+				Load = _queue.Count / Count;
+				if (Load * Count < _queue.Count)
+					++Load;
+				if (Load > Limit)
+					Load = Limit;
+
+				WriteVerbose(string.Format(null, "Work: {0}, Load: {1}, Queue: {2}", _work.Count, Load, _queue.Count));
+				return;
+			}
+
 			long innerTicks = _infoTimeInner.ElapsedTicks - _lastInnerTicks;
 			long totalTicks = _infoTimeTotal.ElapsedTicks - _lastTotalTicks;
 			_lastInnerTicks = _infoTimeInner.ElapsedTicks;
@@ -384,7 +409,7 @@ Total time : {7}
 					newLoad = Queue;
 
 				Load = newLoad;
-				WriteVerbose(string.Format(null, "Pipes: {0}, Cost: {2:p2}, +Load: {1}", _done.Count + _work.Count, Load, ratio));
+				WriteVerbose(string.Format(null, "Work: {0}, +Load: {1}, Cost: {2:p2}, Queue: {3}", _work.Count, Load, ratio, _queue.Count));
 			}
 			else if (ratio < MinCost)
 			{
@@ -395,7 +420,7 @@ Total time : {7}
 					newLoad = 1;
 
 				Load = newLoad;
-				WriteVerbose(string.Format(null, "Pipes: {0}, Cost: {2:p2}, -Load: {1}", _done.Count + _work.Count, Load, ratio));
+				WriteVerbose(string.Format(null, "Work: {0}, -Load: {1}, Cost: {2:p2}, Queue: {3}", _work.Count, Load, ratio, _queue.Count));
 			}
 		}
 		void Wait()
@@ -404,25 +429,23 @@ Total time : {7}
 
 			if (Order)
 			{
-				var node = _work.First;
-				WriteJob(node.Value, node.Value.Take());
-				_work.Remove(node);
-				_done.AddLast(node);
+				_infoTimeInner.Start();
+				{
+					var node = _work.First;
+					var job = node.Value;
+					WriteJob(job, job.Take());
+					_work.Remove(node);
+					_done.AddLast(node);
+				}
+				_infoTimeInner.Stop();
 				return;
 			}
-
-			var timing = _infoTimeInner.IsRunning;
-			if (timing)
-				_infoTimeInner.Stop();
 
 			var wait = new List<WaitHandle>(Count);
 			foreach (var job in _work)
 				wait.Add(job.Wait);
 
 			WaitHandle.WaitAny(wait.ToArray());
-
-			if (timing)
-				_infoTimeInner.Start();
 		}
 	}
 }

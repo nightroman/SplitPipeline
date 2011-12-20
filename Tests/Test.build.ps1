@@ -1,6 +1,34 @@
 
 Import-Module SplitPipeline
 
+task JobSoftErrorAndCmdletErrorContinueMode {
+	if ($PSVersionTable.PSVersion.Major -ge 3) { Write-Warning "Skipping V3 CTP2 issue."; return }
+
+	42 | Split-Pipeline -ErrorAction Continue -OutVariable OutVariable -ErrorVariable ErrorVariable {process{
+		$_
+		Get-Variable MissingSafe
+	}}
+
+	assert ($OutVariable.Count -eq 1)
+	assert (42 -eq $OutVariable[0])
+	assert ($ErrorVariable.Count -eq 1)
+	assert ("Cannot find a variable with name 'MissingSafe'." -eq $ErrorVariable[0])
+}
+
+task JobSoftErrorThenFailure {
+	$4 = ''
+	try {
+		42 | Split-Pipeline {process{
+			Get-Variable MissingSafe
+			Get-Variable MissingStop -ErrorAction Stop
+		}}
+	}
+	catch {$4 = "$_"}
+
+	Write-BuildText Magenta $4
+	assert ($4 -eq "Cannot find a variable with name 'MissingStop'.") $4
+}
+
 task Finally1 {
 	$1 = ''
 	try {
@@ -97,24 +125,13 @@ task ImportVariable {
 	assert ($result.Count -eq 10)
 }
 
-#! Sleep long enough in order to get these results.
-task LastTakesAll {
-	$1 = 1..9 | Split-Pipeline -Count 2 {
-		@($input).Count
-		Start-Sleep -Milliseconds 250
-	}
-	# 4 parts: 1, 1, 4, 5. At first 2 pipes are loaded by 1. Next part size is
-	# 3 ~ 7/2. The last takes all.
-	assert ($1.Count -eq 4) $1.Count
-	assert ($1[0] -eq 1)
-	assert ($1[1] -eq 1)
-	assert ($1[2] -eq 3)
-	assert ($1[3] -eq 4)
-}
-
 task SmallQueue {
 	$1 = 1..111 | Split-Pipeline -Load 20 -Queue 10 {
 		process {$_}
 	}
 	assert ($1.Count -eq 111)
+}
+
+task Refill {
+	.\Test-Refill.ps1
 }

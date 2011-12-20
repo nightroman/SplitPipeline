@@ -1,6 +1,15 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.3.0
+
+New switch `Refill` tells to refill the input queue from output. `[ref]`
+objects are intercepted and added to the input queue. Other objects go to
+output as usual. See an example in help and
+[Test-Refill.ps1](https://github.com/nightroman/SplitPipeline/blob/master/Tests/Test-Refill.ps1).
+
+Tweaks in feeding parallel pipelines and automatic tuning of load.
+
 ## v0.2.0
 
 New switch `Order` tells to output part results in the same order as input
