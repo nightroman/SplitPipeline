@@ -61,6 +61,28 @@ namespace SplitPipeline.Commands
 		public SwitchParameter Refill { get; set; }
 		[Parameter(ValueFromPipeline = true)]
 		public PSObject InputObject { get; set; }
+		[Parameter]
+		public PSObject Filter
+		{
+			get { return _Filter; }
+			set
+			{
+				_Filter = value;
+				if (value != null)
+				{
+					_FilterHash = value.BaseObject as IDictionary;
+					if (_FilterHash == null)
+					{
+						_FilterScript = value.BaseObject as ScriptBlock;
+						if (_FilterScript == null)
+							throw new PSArgumentException("Expected hashtable or script block.", "Filter");
+					}
+				}
+			}
+		}
+		PSObject _Filter;
+		IDictionary _FilterHash;
+		ScriptBlock _FilterScript;
 		readonly InitialSessionState _iss = InitialSessionState.CreateDefault();
 		readonly Queue<PSObject> _queue = new Queue<PSObject>();
 		readonly LinkedList<Job> _done = new LinkedList<Job>();
@@ -214,17 +236,36 @@ Total time : {6}
 				throw;
 			}
 		}
+		void Enqueue(PSObject value)
+		{
+			if (Filter != null)
+			{
+				if (_FilterHash != null)
+				{
+					if (_FilterHash.Contains(value.BaseObject))
+						return;
+					
+					_FilterHash.Add(value, null);
+				}
+				else
+				{
+					if (!LanguagePrimitives.IsTrue(_FilterScript.InvokeReturnAsIs(value)))
+						return;
+				}
+			}
+
+			_queue.Enqueue(value);
+
+			++_infoItemCount;
+			if (_infoMaxQueue < _queue.Count)
+				_infoMaxQueue = _queue.Count;
+		}
 		protected override void ProcessRecord()
 		{
-			++_infoItemCount;
-
+			Enqueue(InputObject);
 			try
 			{
 				Take();
-
-				_queue.Enqueue(InputObject);
-				if (_infoMaxQueue < _queue.Count)
-					_infoMaxQueue = _queue.Count;
 
 				while (_queue.Count >= Queue)
 					Feed(true);
@@ -256,9 +297,7 @@ Total time : {6}
 							else
 							{
 								++_infoItemCount;
-								_queue.Enqueue(new PSObject(reference.Value));
-								if (_infoMaxQueue < _queue.Count)
-									_infoMaxQueue = _queue.Count;
+								Enqueue(new PSObject(reference.Value));
 							}
 						}
 					}

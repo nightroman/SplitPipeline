@@ -1,6 +1,12 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.3.1
+
+Refilled input makes infinite loops possible in some scenarios. Use the new
+parameter `Filter` in order to exclude already processed objects and avoid
+loops.
+
 ## v0.3.0
 
 New switch `Refill` tells to refill the input queue from output. `[ref]`

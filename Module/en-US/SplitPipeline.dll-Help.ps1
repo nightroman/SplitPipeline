@@ -75,6 +75,18 @@ Import-Module SplitPipeline
 		processing continues because Finally has to be called for all created
 		pipelines.
 '@
+		Filter = @'
+		Either a hashtable for collecting unique input objects or a script used
+		in order to test an input object. Input includes extra objects added in
+		Refill mode. In fact, this filter is mostly needed for Refill.
+
+		A hashtable is used in order to collect and enqueue unique objects. In
+		Refill mode it may be useful for avoiding infinite loops.
+
+		A script is invoked in a child scope of the scope where the cmdlet is
+		invoked. The first argument is an object being tested. Returned $true
+		tells to add an object to the input queue.
+'@
 		Count = @'
 		Maximum number of created parallel pipelines. The default value is the
 		number or processors. Use the default or even decrease it for intensive
@@ -145,6 +157,9 @@ Import-Module SplitPipeline
 		go to output as usual. This convention is used for processing items of
 		hierarchical data structures: child container items come back to input,
 		leaf items or other data produced by processing go to output.
+
+		NOTE: Refilled input makes infinite loops possible for some data. Use
+		Filter in order to exclude already processed objects and avoid loops.
 '@
 		InputObject = @'
 		Input objects processed by parallel pipelines. Do not use this
