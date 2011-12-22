@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.3.2
+
+Minor tweaks.
+
 ## v0.3.1
 
 Refilled input makes infinite loops possible in some scenarios. Use the new

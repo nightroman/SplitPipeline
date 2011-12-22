@@ -1,7 +1,7 @@
 
 @{
 	Author = 'Roman Kuzmin'
-	ModuleVersion = '0.3.1'
+	ModuleVersion = '0.3.2'
 	CompanyName = 'https://github.com/nightroman/SplitPipeline'
 	Description = 'SplitPipeline - Parallel Data Processing in PowerShell'
 	Copyright = '(C) 2011 Roman Kuzmin. All rights reserved.'
