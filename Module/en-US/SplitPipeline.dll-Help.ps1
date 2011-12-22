@@ -112,7 +112,7 @@ Import-Module SplitPipeline
 
 		Note that using of a reasonable initial Load value known from practice
 		may be still useful with Auto, the algorithm may work effectively from
-		the start and still be able to adapts the Load dynamically.
+		the start and still be able to adapt the Load dynamically.
 
 		Use Cost in order to specify internal overhead range. This is unlikely
 		needed in most cases, the default range may be just fine.

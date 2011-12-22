@@ -95,6 +95,8 @@ namespace SplitPipeline.Commands
 		int _infoPartCount;
 		int _infoWaitCount;
 		int _infoMaxQueue;
+		bool _isNewJob;
+		int _lastPartCount;
 		long _lastInnerTicks;
 		long _lastTotalTicks;
 		double MaxCost = 0.05;
@@ -360,6 +362,7 @@ Total time : {6}
 				{
 					node = new LinkedListNode<Job>(new Job(RunspaceFactory.CreateRunspace(_iss)));
 					WriteJob(node.Value, node.Value.Begin(_Script, _Begin));
+					_isNewJob = true;
 				}
 				else
 				{
@@ -431,15 +434,28 @@ Total time : {6}
 				return;
 			}
 
+			// nothing has started, ignore this round
+			if (_lastPartCount == _infoPartCount)
+				return;
+
+			// get data and reset this round
 			long innerTicks = _infoTimeInner.ElapsedTicks - _lastInnerTicks;
 			long totalTicks = _infoTimeTotal.ElapsedTicks - _lastTotalTicks;
 			_lastInnerTicks = _infoTimeInner.ElapsedTicks;
 			_lastTotalTicks = _infoTimeTotal.ElapsedTicks;
-			double ratio = (double)innerTicks / totalTicks;
+			_lastPartCount = _infoPartCount;
 
-			if (ratio > MaxCost)
+			// skip this round on new jobs
+			if (_isNewJob)
 			{
-				var newLoad = (int)(Load * (1 + ratio));
+				_isNewJob = false;
+				return;
+			}
+
+			double cost = (double)innerTicks / totalTicks;
+			if (cost > MaxCost)
+			{
+				var newLoad = (int)(Load * (1 + cost));
 				if (newLoad == Load)
 					++newLoad;
 				if (newLoad > Limit)
@@ -448,9 +464,9 @@ Total time : {6}
 					newLoad = Queue;
 
 				Load = newLoad;
-				WriteVerbose(string.Format(null, "Work: {0}, +Load: {1}, Cost: {2:p2}, Queue: {3}", _work.Count, Load, ratio, _queue.Count));
+				WriteVerbose(string.Format(null, "Work: {0}, +Load: {1}, Cost: {2:p2}, Queue: {3}", _work.Count, Load, cost, _queue.Count));
 			}
-			else if (ratio < MinCost)
+			else if (cost < MinCost)
 			{
 				var newLoad = (int)(Load * (1 - LoadDelta));
 				if (newLoad == Load)
@@ -459,7 +475,7 @@ Total time : {6}
 					newLoad = 1;
 
 				Load = newLoad;
-				WriteVerbose(string.Format(null, "Work: {0}, -Load: {1}, Cost: {2:p2}, Queue: {3}", _work.Count, Load, ratio, _queue.Count));
+				WriteVerbose(string.Format(null, "Work: {0}, -Load: {1}, Cost: {2:p2}, Queue: {3}", _work.Count, Load, cost, _queue.Count));
 			}
 		}
 		void Wait()
