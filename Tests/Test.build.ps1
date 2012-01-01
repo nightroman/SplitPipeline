@@ -50,7 +50,7 @@ task JobSoftErrorThenFailure {
 task Finally1 {
 	$1 = ''
 	try {
-		1..10 | Split-Pipeline -Count 2 -Limit 1 `
+		1..10 | Split-Pipeline -Count 2 -Load 1 `
 		-Script {throw 'Throw in Script'} `
 		-Finally {throw 'Throw in Finally'}
 	}
@@ -60,7 +60,7 @@ task Finally1 {
 
 task Finally2 {
 	$result = @(
-		1..2 | Split-Pipeline -Count 2 -Limit 1 `
+		1..2 | Split-Pipeline -Count 2 -Load 1 `
 		-Script {process{$_}} `
 		-Finally {throw 'Throw in Finally'}
 	)
@@ -69,7 +69,7 @@ task Finally2 {
 }
 
 task BeginProcessEnd {
-	$result = 1..4 | Split-Pipeline -Count 2 -Limit 1 -Verbose `
+	$result = 1..4 | Split-Pipeline -Count 2 -Load 1 -Verbose `
 	-Begin {
 		$VerbosePreference = 'Continue'
 		'begin split'
@@ -141,13 +141,6 @@ task ImportVariable {
 		$input
 	}
 	assert ($result.Count -eq 10)
-}
-
-task SmallQueue {
-	$1 = 1..111 | Split-Pipeline -Load 20 -Queue 10 {
-		process {$_}
-	}
-	assert ($1.Count -eq 111)
 }
 
 task Refill {

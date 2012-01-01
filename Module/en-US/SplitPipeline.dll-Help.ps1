@@ -18,9 +18,9 @@ Import-Module SplitPipeline
 	pipelines. The algorithm starts to work without having the entire input
 	available. Input can be very large or even infinite.
 
-	Input is processed by parts. Size of each part is defined by the parameter
-	Load but not necessarily equal to it. The Limit is used in order to define
-	the maximum part size.
+	Input is processed by parts. If processing is relatively fast then it is
+	important to specify part size limits by the parameter Load or/and enable
+	automatic load balancing by the switch Auto.
 
 	The cmdlet creates several pipelines. Each pipeline is created when input
 	parts are available, created pipelines are busy, and their number is less
@@ -33,7 +33,7 @@ Import-Module SplitPipeline
 
 	If number of created pipelines is equal to Count and all pipelines are busy
 	then incoming input items are enqueued for later processing. If the queue
-	size hits the limit Queue then the algorithm waits for a ready pipeline.
+	size hits the limit then the algorithm waits for a pipeline to complete.
 
 	Input items are not necessarily processed in the same order as they come.
 	But output can be ordered according to input parts, use the switch Order.
@@ -94,50 +94,34 @@ Import-Module SplitPipeline
 		example, output is processed simultaneously. But for jobs not consuming
 		much processor resources increasing the number may improve performance.
 '@
-		Queue = @'
-		Maximum number of objects in the queue. If all pipelines are busy then
-		incoming input objects are enqueued for later processing. The queue is
-		unlimited by default. The limit should be specified for potentially
-		large input. When the limit is hit the engine waits for a pipeline
-		available for input from the queue.
+		Load = @'
+		Recommended minimum and optional maximum number of input objects for
+		each parallel pipeline. The default minimum is 1, the maximum is not
+		limited.
 
-		CAUTION: The Queue limit may be ignored and exceeded if Refill is used.
+		If processing of input items is fast then increasing the minimum may
+		improve performance.
+
+		Setting the maximum number causes more frequent output (if the limit is
+		actually hit). This may be important for feeding downstream commands in
+		the pipeline working at the same time.
+
+		Setting the maximum number is also needed for potentially large input
+		in order to limit the input queue size and avoid out of memory issues.
+		The maximum queue size is set to Load[1] * Count.
+
+		CAUTION: The queue limit may be ignored and exceeded if Refill is used.
 		Any number of objects written via [ref] go straight to the input queue.
+		Thus, depending on data Refill scenarios may fail due to out of memory.
 '@
 		Auto = @'
-		Tells to tune some parameters automatically during processing in order
-		to increase utilization of pipelines and reduce overhead. This is done
-		normally by increasing the value of Load. Use Verbose in order to view
-		some details during and after processing.
+		Tells to perform automatic load balancing during processing in order to
+		increase utilization of pipelines. Use Verbose in order to view some
+		details during and after processing.
 
-		Note that using of a reasonable initial Load value known from practice
-		may be still useful with Auto, the algorithm may work effectively from
-		the start and still be able to adapt the Load dynamically.
-
-		Use Cost in order to specify internal overhead range. This is unlikely
-		needed in most cases, the default range may be just fine.
-'@
-		Cost = @'
-		Recommended percentage of inner overhead time with respect to overall
-		time. It is used together with the switch Auto and ignored otherwise.
-		It accepts one or two values: the maximum (first) and minimum (second)
-		percentage. If the second value is omitted then 0 is assumed. Default
-		values are 5 and 1 (they may change in future versions).
-'@
-		Load = @'
-		Recommended minimum number of input objects for each parallel pipeline.
-		The default is 1. If processing is fast then increasing this number may
-		improve overall performance, it may reduce the total number of input
-		parts and overhead of pipeline invocations for each part.
-
-		Use the switch Auto in order to tune the Load during processing. But a
-		proper initial value known from practice may be still useful with Auto.
-'@
-		Limit = @'
-		Maximum number of input objects for each parallel pipeline. The default
-		is 0 (unlimited). Setting this limit causes more frequent output (if it
-		is actually hit). This may be important for feeding downstream commands
-		in the pipeline working at the same time.
+		Note that using of reasonable load values known from practice may be
+		still useful, the algorithm may work effectively from the start and
+		still be able to adjust the load dynamically.
 '@
 		Variable = @'
 		Variables imported from the current runspace to parallel.
@@ -150,7 +134,7 @@ Import-Module SplitPipeline
 '@
 		Order = @'
 		Tells to output part results in the same order as input parts arrive.
-		The algorithm may work a little bit slower.
+		The algorithm may work slower.
 '@
 		Refill = @'
 		Tells to refill the input by [ref] objects from output. Other objects

@@ -1,6 +1,13 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.4.0
+
+Revision of parameters and automatic load balancing (mostly simplification).
+Joined parameters Load and Limit into the single parameter Load (one or two
+values). Removed parameters Cost (not needed now) and Queue (Load is used in
+order to limit the queue).
+
 ## v0.3.2
 
 Minor tweaks.
