@@ -20,7 +20,8 @@ task FilterInputUniqueByHashtable {
 }
 
 task JobSoftErrorAndCmdletErrorContinueMode {
-	if ($PSVersionTable.PSVersion.Major -ge 3) { Write-Warning "Skipping V3 CTP2 issue."; return }
+	#! V3 RC works
+	#if ($PSVersionTable.PSVersion.Major -ge 3) { Write-Warning "Skipping V3 CTP2 issue."; return }
 
 	42 | Split-Pipeline -ErrorAction Continue -OutVariable OutVariable -ErrorVariable ErrorVariable {process{
 		$_

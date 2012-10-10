@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v0.4.1
+
+Refactoring and minor improvements.
+
 ## v0.4.0
 
 Revision of parameters and automatic load balancing (mostly simplification).

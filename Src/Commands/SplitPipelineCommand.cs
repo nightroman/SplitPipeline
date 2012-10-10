@@ -19,6 +19,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Threading;
@@ -26,7 +27,7 @@ using System.Threading;
 namespace SplitPipeline.Commands
 {
 	[Cmdlet(VerbsCommon.Split, "Pipeline")]
-	public class SplitPipelineCommand : PSCmdlet
+	public sealed class SplitPipelineCommand : PSCmdlet, IDisposable
 	{
 		[Parameter(Position = 0, Mandatory = true)]
 		public ScriptBlock Script { get; set; }
@@ -36,11 +37,14 @@ namespace SplitPipeline.Commands
 		public ScriptBlock End { get; set; }
 		[Parameter]
 		public ScriptBlock Finally { get; set; }
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
+		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
+		[Parameter]
 		public string[] Variable { get; set; }
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
+		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
+		[Parameter]
 		public string[] Function { get; set; }
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
+		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
+		[Parameter]
 		public string[] Module { get; set; }
 		[Parameter]
 		public int Count { get; set; }
@@ -52,7 +56,9 @@ namespace SplitPipeline.Commands
 		public SwitchParameter Refill { get; set; }
 		[Parameter(ValueFromPipeline = true)]
 		public PSObject InputObject { get; set; }
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays"), Parameter]
+		[SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0")]
+		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
+		[Parameter]
 		[ValidateCount(1, 2)]
 		public int[] Load
 		{
@@ -143,11 +149,7 @@ namespace SplitPipeline.Commands
 				}
 			}
 		}
-		protected override void StopProcessing()
-		{
-			Close(null);
-		}
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
+		[SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
 		void Close(string end)
 		{
 			// move jobs to done
@@ -210,18 +212,10 @@ Items /sec : {6}
 			_isEnd = true;
 			WriteVerbose(string.Format(null, "End: Items: {0}", _queue.Count));
 
-			try
-			{
-				while (!Stopping && (_queue.Count > 0 || _work.Count > 0))
-					Feed(true);
+			while (!Stopping && (_queue.Count > 0 || _work.Count > 0))
+				Feed(true);
 
-				Close(_End);
-			}
-			catch
-			{
-				Close(null);
-				throw;
-			}
+			Close(_End);
 		}
 		void Enqueue(PSObject value)
 		{
@@ -249,23 +243,15 @@ Items /sec : {6}
 		}
 		protected override void ProcessRecord()
 		{
-			try
-			{
-				Enqueue(InputObject);
-				if (_queue.Count < _currentLoad)
-					return;
+			Enqueue(InputObject);
+			if (_queue.Count < _currentLoad)
+				return;
 
-				while (_queue.Count >= MaxQueue)
-					Feed(true);
+			while (_queue.Count >= MaxQueue)
+				Feed(true);
 
-				if (_queue.Count >= _currentLoad)
-					Feed(false);
-			}
-			catch
-			{
-				Close(null);
-				throw;
-			}
+			if (_queue.Count >= _currentLoad)
+				Feed(false);
 		}
 		void WriteJob(Job job, ICollection<PSObject> result)
 		{
@@ -318,7 +304,7 @@ Items /sec : {6}
 				streams.Error.Clear();
 			}
 		}
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope")]
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope")]
 		void Feed(bool force)
 		{
 			// try to make more pipes ready and more input in refill mode
@@ -458,6 +444,10 @@ Items /sec : {6}
 				wait.Add(job.Wait);
 
 			WaitHandle.WaitAny(wait.ToArray());
+		}
+		public void Dispose()
+		{
+			Close(null);
 		}
 	}
 }
