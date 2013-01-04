@@ -4,7 +4,7 @@
 	ModuleVersion = '0.4.1'
 	CompanyName = 'https://github.com/nightroman/SplitPipeline'
 	Description = 'SplitPipeline - Parallel Data Processing in PowerShell'
-	Copyright = '(C) 2011-2012 Roman Kuzmin. All rights reserved.'
+	Copyright = '(C) 2011-2013 Roman Kuzmin. All rights reserved.'
 
 	NestedModules = 'SplitPipeline.dll'
 	RequiredAssemblies = 'SplitPipeline.dll'
