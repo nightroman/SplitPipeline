@@ -39,7 +39,7 @@ task Build {
 
 # Clean all.
 task Clean RemoveMarkdownHtml, {
-	Remove-Item z, Src\bin, Src\obj, Module\SplitPipeline.dll, SplitPipeline.*.zip, *.nupkg -Force -Recurse -ErrorAction 0
+	Remove-Item z, Src\bin, Src\obj, Module\SplitPipeline.dll, *.nupkg -Force -Recurse -ErrorAction 0
 }
 
 # Copy all to the module root directory and then build help.
@@ -51,7 +51,7 @@ task PostBuild {
 @{Help=1}
 
 # Build module help by Helps (https://github.com/nightroman/Helps).
-task Help -Incremental @{(Get-Item Src\Commands\*, Module\en-US\SplitPipeline.dll-Help.ps1) = "$ModuleRoot\en-US\SplitPipeline.dll-Help.xml"} {
+task Help -Inputs (Get-Item Src\Commands\*, Module\en-US\SplitPipeline.dll-Help.ps1) -Outputs "$ModuleRoot\en-US\SplitPipeline.dll-Help.xml" {
 	. Helps.ps1
 	Convert-Helps Module\en-US\SplitPipeline.dll-Help.ps1 $Outputs
 }
@@ -78,7 +78,7 @@ task Test {
 try { Markdown.tasks.ps1 }
 catch { task ConvertMarkdown; task RemoveMarkdownHtml }
 
-# Make the package in z\tools for Zip and NuGet.
+# Make the package in z\tools NuGet.
 task Package ConvertMarkdown, {
 	Remove-Item [z] -Force -Recurse
 	$null = mkdir z\tools\SplitPipeline\en-US
@@ -101,12 +101,6 @@ task Package ConvertMarkdown, {
 task Version {
 	assert ((Get-Item $ModuleRoot\SplitPipeline.dll).VersionInfo.FileVersion -match '^(\d+\.\d+\.\d+)')
 	$script:Version = $matches[1]
-}
-
-# Make zip package.
-task Zip Package, Version, {
-	Set-Location z\tools
-	exec { & 7z a ..\..\SplitPipeline.$Version.zip * }
 }
 
 # Make NuGet package.
@@ -138,9 +132,6 @@ for large or even infinite input.
 	# pack
 	exec { NuGet pack z\Package.nuspec -NoPackageAnalysis }
 }
-
-# Make all packages.
-task Pack Zip, NuGet
 
 # Build, test and clean all.
 task . Build, Test, TestHelp, Clean

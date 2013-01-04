@@ -44,7 +44,7 @@ task JobSoftErrorThenFailure {
 	}
 	catch {$4 = "$_"}
 
-	Write-BuildText Magenta $4
+	Write-Build Magenta $4
 	assert ($4 -eq "Cannot find a variable with name 'MissingStop'.") $4
 }
 

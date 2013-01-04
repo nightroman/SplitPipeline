@@ -9,17 +9,21 @@ for large or even infinite input.
 
 ## Quick Start
 
-**Step 1:**
-An easy way to get and update the package is
+**Step 1:** Get and install *SplitPipeline*:
+
+An easy way to get and install is the PowerShell tool
+[PsGet](https://github.com/psget/psget):
+
+    Import-Module PsGet
+    Install-Module -NuGetPackageId SplitPipeline
+
+Alternatively, to get the package without installation use
 [NuGet.exe Command Line](http://nuget.codeplex.com/releases):
 
     NuGet install SplitPipeline
 
-Alternatively, manually download and unzip the latest package from
-[Downloads](https://github.com/nightroman/SplitPipeline/downloads).
-
-Copy the directory *SplitPipeline* from the package to one of the PowerShell
-module directories (see `$env:PSModulePath`). For example:
+In the latter case copy the directory *tools\SplitPipeline* from the package to
+a PowerShell module directory, see `$env:PSModulePath`. For example:
 
     C:/Users/.../Documents/WindowsPowerShell/Modules/SplitPipeline
 
