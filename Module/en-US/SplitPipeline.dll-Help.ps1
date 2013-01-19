@@ -24,12 +24,12 @@ Import-Module SplitPipeline
 
 	The cmdlet creates several pipelines. Each pipeline is created when input
 	parts are available, created pipelines are busy, and their number is less
-	than Count. Created pipelines are used for processing several input parts,
-	one at a time.
+	than Count. Each created pipeline is used for processing several input
+	parts, one at a time.
 
 	The Begin and End script are invoked for each created pipeline before and
-	after processing. Each input part is piped to the script Script which is
-	invoked by one of the pipelines (existing available or new).
+	after processing. Each input part is piped to the script block Script which
+	is invoked by one of the available or newly created pipelines.
 
 	If number of created pipelines is equal to Count and all pipelines are busy
 	then incoming input items are enqueued for later processing. If the queue
@@ -108,7 +108,7 @@ Import-Module SplitPipeline
 
 		Setting the maximum number is also needed for potentially large input
 		in order to limit the input queue size and avoid out of memory issues.
-		The maximum queue size is set to Load[1] * Count.
+		The maximum queue size is set internally to Load[1] * Count.
 
 		CAUTION: The queue limit may be ignored and exceeded if Refill is used.
 		Any number of objects written via [ref] go straight to the input queue.
@@ -162,9 +162,9 @@ Import-Module SplitPipeline
 		@{
 			type = 'Object'
 			description = @'
-		Output of the Begin, Script, and End scripts. The Begin and End scripts
-		are invoked once for each pipeline before and after processing. The
-		Script script is invoked several times with input parts piped to it.
+		Output of the Begin, Script, and End script blocks. The Begin and End
+		scripts are invoked once for each pipeline before and after processing.
+		The script Script is invoked repeatedly with input parts piped to it.
 '@
 		}
 	)

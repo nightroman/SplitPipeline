@@ -63,6 +63,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Commands\SplitPipelineCommand.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Job.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

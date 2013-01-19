@@ -1,6 +1,11 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.0.0
+
+Minor cosmetic changes in help and code. The API seems to be stabilized and no
+issues were found for a while. Changed the status from "beta" to "release".
+
 ## v0.4.1
 
 Refactoring and minor improvements.

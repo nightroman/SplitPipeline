@@ -24,7 +24,6 @@ using System.Threading;
 
 namespace SplitPipeline
 {
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
 	class Job
 	{
 		readonly PowerShell _posh = PowerShell.Create();

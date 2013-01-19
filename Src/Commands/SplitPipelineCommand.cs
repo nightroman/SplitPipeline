@@ -19,7 +19,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Threading;
@@ -37,13 +36,10 @@ namespace SplitPipeline.Commands
 		public ScriptBlock End { get; set; }
 		[Parameter]
 		public ScriptBlock Finally { get; set; }
-		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
 		[Parameter]
 		public string[] Variable { get; set; }
-		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
 		[Parameter]
 		public string[] Function { get; set; }
-		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
 		[Parameter]
 		public string[] Module { get; set; }
 		[Parameter]
@@ -56,8 +52,6 @@ namespace SplitPipeline.Commands
 		public SwitchParameter Refill { get; set; }
 		[Parameter(ValueFromPipeline = true)]
 		public PSObject InputObject { get; set; }
-		[SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0")]
-		[SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
 		[Parameter]
 		[ValidateCount(1, 2)]
 		public int[] Load
@@ -149,7 +143,6 @@ namespace SplitPipeline.Commands
 				}
 			}
 		}
-		[SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
 		void Close(string end)
 		{
 			// move jobs to done
@@ -304,7 +297,6 @@ Items /sec : {6}
 				streams.Error.Clear();
 			}
 		}
-		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope")]
 		void Feed(bool force)
 		{
 			// try to make more pipes ready and more input in refill mode
