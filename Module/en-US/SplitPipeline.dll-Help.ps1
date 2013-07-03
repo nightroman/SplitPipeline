@@ -27,6 +27,11 @@ Import-Module SplitPipeline
 	than Count. Each created pipeline is used for processing several input
 	parts, one at a time.
 
+	Because each pipeline runs in a separate runspace variables, functions, and
+	modules from the main script are not available for the processing script by
+	default. Items accessed in a pipeline script should be explicitly listed by
+	Variable, Function, and Module parameters.
+
 	The Begin and End script are invoked for each created pipeline before and
 	after processing. Each input part is piped to the script block Script which
 	is invoked by one of the available or newly created pipelines.
@@ -95,15 +100,16 @@ Import-Module SplitPipeline
 		much processor resources increasing the number may improve performance.
 '@
 		Load = @'
-		Recommended minimum and optional maximum number of input objects for
-		each parallel pipeline. The default minimum is 1, the maximum is not
-		limited.
+		One or two values specifying the minimum and maximum number of input
+		objects for each parallel pipeline. The first value is the recommended
+		minimum, 1 is the default. The second value is the maximum, not limited
+		if omitted.
 
 		If processing of input items is fast then increasing the minimum may
 		improve performance.
 
-		Setting the maximum number causes more frequent output (if the limit is
-		actually hit). This may be important for feeding downstream commands in
+		Setting the maximum number causes more frequent output if the limit is
+		actually hit. This may be important for feeding downstream commands in
 		the pipeline working at the same time.
 
 		Setting the maximum number is also needed for potentially large input
@@ -206,6 +212,28 @@ Import-Module SplitPipeline
 	https://github.com/nightroman/SplitPipeline/blob/master/Tests/Test-Refill.ps1
 '@
 			test = { . $args[0] }
+		}
+		@{
+			remarks = @'
+	Because each pipeline runs in a separate runspace variables, functions, and
+	modules from the main script are not available for the processing script by
+	default. Items accessed in a pipeline script should be explicitly listed by
+	Variable, Function, and Module parameters.
+
+    > $arr = @('one', 'two', 'three'); 0..2 | ForEach-Object {$arr[$_]}
+    one
+    two
+    three
+
+    > $arr = @('one', 'two', 'three'); 0..2 | Split-Pipeline {process{$arr[$_]}}
+    Split-Pipeline : Cannot index into a null array.
+    ...
+
+    > $arr = @('one', 'two', 'three'); 0..2 | Split-Pipeline -Variable arr {process {$arr[$_]}}
+    one
+    two
+    three
+'@
 		}
 	)
 	links = @(

@@ -1,6 +1,11 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.0.1
+
+Help. Mentioned why and when to use `Variable`, `Function`, and `Module`. Added
+the related example.
+
 ## v1.0.0
 
 Minor cosmetic changes in help and code. The API seems to be stabilized and no
