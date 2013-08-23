@@ -155,6 +155,10 @@ Import-Module SplitPipeline
 		Input objects processed by parallel pipelines. Do not use this
 		parameter directly, use the pipeline operator instead.
 '@
+		Apartment = @'
+		Specify either "MTA" or "STA" to use multi- or single-threaded COM
+		apartments in the runspaces.
+'@
 	}
 	inputs = @(
 		@{
