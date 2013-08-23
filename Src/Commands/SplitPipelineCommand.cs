@@ -91,6 +91,26 @@ namespace SplitPipeline.Commands
 				}
 			}
 		}
+		[Parameter]
+		[ValidateSet("MTA", "STA")]
+		public string Apartment
+		{
+			set
+			{
+				switch (value.ToUpperInvariant())
+				{
+					case "STA":
+						_iss.ApartmentState = ApartmentState.STA;
+						break;
+					case "MTA":
+						_iss.ApartmentState = ApartmentState.MTA;
+						break;
+					default:
+						_iss.ApartmentState = ApartmentState.Unknown;
+						break;
+				}
+			}
+		}
 		PSObject _Filter;
 		IDictionary _FilterHash;
 		ScriptBlock _FilterScript;
