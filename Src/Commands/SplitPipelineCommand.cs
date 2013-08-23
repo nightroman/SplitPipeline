@@ -92,24 +92,10 @@ namespace SplitPipeline.Commands
 			}
 		}
 		[Parameter]
-		[ValidateSet("MTA", "STA")]
-		public string Apartment
+		public ApartmentState ApartmentState
 		{
-			set
-			{
-				switch (value.ToUpperInvariant())
-				{
-					case "STA":
-						_iss.ApartmentState = ApartmentState.STA;
-						break;
-					case "MTA":
-						_iss.ApartmentState = ApartmentState.MTA;
-						break;
-					default:
-						_iss.ApartmentState = ApartmentState.Unknown;
-						break;
-				}
-			}
+			get { return _iss.ApartmentState; }
+			set { _iss.ApartmentState = value; }
 		}
 		PSObject _Filter;
 		IDictionary _FilterHash;

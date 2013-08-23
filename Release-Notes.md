@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.1.0
+
+New parameter `ApartmentState`.
+
 ## v1.0.1
 
 Help. Mentioned why and when to use `Variable`, `Function`, and `Module`. Added

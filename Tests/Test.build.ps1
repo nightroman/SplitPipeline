@@ -147,3 +147,8 @@ task ImportVariable {
 task Refill {
 	.\Test-Refill.ps1
 }
+
+task ApartmentState {
+	assert ("MTA" -eq (1 | Split-Pipeline -ApartmentState MTA { [System.Threading.Thread]::CurrentThread.ApartmentState }))
+	assert ("STA" -eq (1 | Split-Pipeline -ApartmentState STA { [System.Threading.Thread]::CurrentThread.ApartmentState }))
+}
