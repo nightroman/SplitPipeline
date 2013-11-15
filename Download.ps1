@@ -9,7 +9,7 @@
 	use another location.
 #>
 
-function DownloadPackage([Parameter()]$PackageId) {
+function DownloadModule([Parameter()]$PackageId) {
 	$ErrorActionPreference = 'Stop'
 
 	$here = $PSCmdlet.GetUnresolvedProviderPathFromPSPath('')
@@ -29,13 +29,13 @@ function DownloadPackage([Parameter()]$PackageId) {
 	}
 
 	$shell = New-Object -ComObject Shell.Application
-	$from = $shell.Namespace("$zip\tools\SplitPipeline")
+	$from = $shell.Namespace("$zip\tools\$PackageId")
 	if (!$from) {
-		Write-Error "Missing package item '$zip\tools\SplitPipeline'."
+		Write-Error "Missing package item '$zip\tools\$PackageId'."
 	}
 
 	$null = mkdir $dir
 	$shell.Namespace($dir).CopyHere($from.items())
 }
 
-DownloadPackage SplitPipeline
+DownloadModule SplitPipeline
