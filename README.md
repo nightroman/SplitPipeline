@@ -9,23 +9,20 @@ for large or even infinite input.
 
 ## Quick Start
 
-**Step 1:** Get and install *SplitPipeline*:
+**Step 1:** Get and install SplitPipeline.
+SplitPipeline is distributed as the NuGet package [SplitPipeline](https://www.nuget.org/packages/SplitPipeline).
+Download it to the current location as the directory *"SplitPipeline"* by this PowerShell command:
 
-An easy way to get and install is the PowerShell tool
-[PsGet](https://github.com/psget/psget):
+    Invoke-Expression (New-Object Net.WebClient).DownloadString('https://raw.github.com/nightroman/SplitPipeline/master/Download.ps1')
 
-    Import-Module PsGet
-    Install-Module -NuGetPackageId SplitPipeline
+Alternatively, download it by NuGet tools or [directly](http://nuget.org/api/v2/package/SplitPipeline).
+In the latter case rename the package to *".zip"* and unzip. Use the package
+subdirectory *"tools/SplitPipeline"*.
 
-Alternatively, to get the package without installation use
-[NuGet.exe Command Line](http://nuget.codeplex.com/releases):
+Copy the directory *SplitPipeline* to a PowerShell module directory, see
+`$env:PSModulePath`, normally like this:
 
-    NuGet install SplitPipeline
-
-In the latter case copy the directory *tools\SplitPipeline* from the package to
-a PowerShell module directory, see `$env:PSModulePath`. For example:
-
-    C:/Users/.../Documents/WindowsPowerShell/Modules/SplitPipeline
+    C:/Users/<User>/Documents/WindowsPowerShell/Modules/SplitPipeline
 
 **Step 2:** In a PowerShell command prompt import the module:
 
