@@ -21,7 +21,7 @@ task FilterInputUniqueByHashtable {
 
 task JobSoftErrorAndCmdletErrorContinueMode {
 	#! V3 RC works
-	#if ($PSVersionTable.PSVersion.Major -ge 3) { Write-Warning "Skipping V3 CTP2 issue."; return }
+	#if ($PSVersionTable.PSVersion.Major -ge 3) {  "Skipping V3 CTP2 issue."; return }
 
 	42 | Split-Pipeline -ErrorAction Continue -OutVariable OutVariable -ErrorVariable ErrorVariable {process{
 		$_
@@ -70,18 +70,22 @@ task Finally2 {
 }
 
 task BeginProcessEnd {
+	$DebugPreference = 'Continue'
 	$result = 1..4 | Split-Pipeline -Count 2 -Load 1 -Verbose `
 	-Begin {
 		$VerbosePreference = 'Continue'
+		$DebugPreference = 'Continue'
 		'begin split'
 		Write-Warning 'Warning in begin split'
 		Write-Verbose 'Verbose in begin split'
+		Write-Debug 'Debug in begin split'
 		Write-Error 'Error in begin split'
 	} `
 	-End {
 		'end split'
 		Write-Warning 'Warning in end split'
 		Write-Verbose 'Verbose in end split'
+		Write-Debug 'Debug in end split'
 		Write-Error 'Error in end split'
 	} `
 	-Script {
@@ -89,6 +93,7 @@ task BeginProcessEnd {
 			'begin part'
 			Write-Warning 'Warning in script'
 			Write-Verbose 'Verbose in script'
+			Write-Debug 'Debug in script'
 			Write-Error 'Error in script'
 		}
 		process {

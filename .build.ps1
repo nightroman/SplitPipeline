@@ -133,5 +133,18 @@ for large or even infinite input.
 	exec { NuGet pack z\Package.nuspec -NoPackageAnalysis }
 }
 
+# Push to the repository with a version tag.
+task PushRelease Version, {
+     exec { git push }
+     exec { git tag -a "v$Version" -m "v$Version" }
+     exec { git push origin "v$Version" }
+}
+
+# Make and push the NuGet package.
+task PushNuGet NuGet, {
+     exec { NuGet push "SplitPipeline.$Version.nupkg" }
+},
+Clean
+
 # Build, test and clean all.
 task . Build, Test, TestHelp, Clean

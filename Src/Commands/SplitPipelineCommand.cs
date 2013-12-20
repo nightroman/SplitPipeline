@@ -282,6 +282,14 @@ Items /sec : {6}
 			}
 
 			var streams = job.Streams;
+
+			if (streams.Debug.Count > 0)
+			{
+				foreach (var record in streams.Debug)
+					WriteDebug(record.Message);
+				streams.Debug.Clear();
+			}
+
 			if (streams.Verbose.Count > 0)
 			{
 				foreach (var record in streams.Verbose)

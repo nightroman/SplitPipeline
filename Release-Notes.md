@@ -1,6 +1,12 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.2.0
+
+Debug streams of parallel pipelines are processed as well and debug messages
+are propagated to the main pipeline, just like errors, warnings, and verbose
+messages.
+
 ## v1.1.0
 
 New parameter `ApartmentState`.
