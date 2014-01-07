@@ -30,11 +30,11 @@ param
 $ModuleRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) WindowsPowerShell\Modules\SplitPipeline
 
 # Use MSBuild.
-use Framework\v4.0.30319 MSBuild
+use 4.0 MSBuild
 
 # Build all.
 task Build {
-	exec { MSBuild Src\SplitPipeline.csproj /t:Build /p:Configuration=$Configuration }
+	exec { MSBuild Src\SplitPipeline.csproj /t:Build /p:Configuration=$Configuration /p:TargetFrameworkVersion=v2.0 }
 }
 
 # Clean all.
