@@ -1,6 +1,12 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.2.1
+
+Added processing of `StopProcessing()` which is called on `[Ctrl-C]`. Note that
+stopping is normally not recommended. But in some cases "under construction" it
+may help, e.g. [#3](https://github.com/nightroman/SplitPipeline/issues/3).
+
 ## v1.2.0
 
 Debug streams of parallel pipelines are processed as well and debug messages

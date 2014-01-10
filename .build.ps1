@@ -106,10 +106,10 @@ task Version {
 # Make NuGet package.
 task NuGet Package, Version, {
 	$text = @'
-SplitPipeline is a PowerShell module for parallel data processing. The cmdlet
-Split-Pipeline splits input, processes its parts by parallel pipelines, and
-joins the output. It works without collecting the entire input which can be
-large or infinite.
+This is a PowerShell module for parallel processing. Split-Pipeline splits the
+input, processes parts by parallel pipelines, and joins the output that may be
+processed directly. It works without collecting the entire input which may be
+even infinite.
 '@
 	# nuspec
 	Set-Content z\Package.nuspec @"
@@ -118,10 +118,10 @@ large or infinite.
 	<metadata>
 		<id>SplitPipeline</id>
 		<version>$Version</version>
-		<authors>Roman Kuzmin</authors>
 		<owners>Roman Kuzmin</owners>
-		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
+		<authors>Roman Kuzmin</authors>
 		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<summary>$text</summary>
 		<description>$text</description>

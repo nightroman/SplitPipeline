@@ -11,12 +11,12 @@ Import-Module SplitPipeline
 @{
 	command = 'Split-Pipeline'
 	synopsis = @'
-	Splits pipeline input and processes input parts by parallel pipelines.
+	Splits pipeline input and processes its parts by parallel pipelines.
 '@
 	description = @'
-	The cmdlet splits pipeline input and processes input parts by parallel
-	pipelines. The algorithm starts to work without having the entire input
-	available. Input can be very large or even infinite.
+    The cmdlet splits the input, processes parts by parallel pipelines, and
+    joins the output that may be processed directly. It works without
+    collecting the entire input which may be even infinite.
 
 	Input is processed by parts. If processing is relatively fast then it is
 	important to specify part size limits by the parameter Load or/and enable

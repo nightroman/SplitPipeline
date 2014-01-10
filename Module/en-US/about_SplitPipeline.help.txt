@@ -6,14 +6,13 @@ SHORT DESCRIPTION
     SplitPipeline - Parallel Data Processing in PowerShell
 
 LONG DESCRIPTION
-    The module provides the cmdlet Split-Pipeline. It splits pipeline input and
-    processes input parts by parallel pipelines. The algorithm starts to work
-    without having the entire input available. Input can be very large or even
-    infinite.
+    The only cmdlet is Split-Pipeline. It splits the input, processes parts by
+    parallel pipelines, and joins the output that may be processed directly.
+    It works without collecting the entire input which may be even infinite.
 
     Get help:
     PS> Import-Module SplitPipeline
-    PS> help -full Split-Pipeline
+    PS> help -Full Split-Pipeline
 
 SEE ALSO
     Project site: https://github.com/nightroman/SplitPipeline

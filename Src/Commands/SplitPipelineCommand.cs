@@ -105,8 +105,10 @@ namespace SplitPipeline.Commands
 		readonly LinkedList<Job> _done = new LinkedList<Job>();
 		readonly LinkedList<Job> _work = new LinkedList<Job>();
 		readonly Stopwatch _infoTimeTotal = Stopwatch.StartNew();
+		readonly object _syncObject = new object();
 		string _Script, _Begin, _End, _Finally;
 		bool _isEnd;
+		bool _closed;
 		int _currentLoad;
 		int _infoItemCount;
 		int _infoPartCount;
@@ -149,22 +151,34 @@ namespace SplitPipeline.Commands
 				}
 			}
 		}
+		//! Write* methods may throw on stopping
 		void Close(string end)
 		{
-			// move jobs to done
-			while (_work.Count > 0)
+			lock (_syncObject)
 			{
-				var node = _work.First;
-				_work.RemoveFirst();
-				_done.AddLast(node);
-			}
+				// close once
+				if (_closed)
+					return;
+				_closed = true;
 
-			// closed?
-			if (_done.Count == 0)
-				return;
+				// move jobs to done
+				while (_work.Count > 0)
+				{
+					var node = _work.First;
+					_work.RemoveFirst();
+					_done.AddLast(node);
+				}
 
-			// show info
-			WriteVerbose(string.Format(null, @"
+				// done?
+				if (_done.Count == 0)
+					return;
+
+				try
+				{
+					// summary
+					if (!Stopping)
+					{
+						WriteVerbose(string.Format(null, @"
 Item count : {0}
 Part count : {1}
 Pipe count : {2}
@@ -173,37 +187,52 @@ Max queue  : {4}
 Total time : {5}
 Items /sec : {6}
 ", _infoItemCount, _infoPartCount, _done.Count, _infoWaitCount, _infoMaxQueue, _infoTimeTotal.Elapsed, _infoItemCount / _infoTimeTotal.Elapsed.TotalSeconds));
-
-			try
-			{
-				// invoke End
-				if (end != null && !Stopping)
-				{
-					foreach (var job in _done)
-						WriteJob(job, job.End(end));
-				}
-			}
-			finally
-			{
-				// invoke Finally
-				if (_Finally != null)
-				{
-					var exceptions = new List<Exception>();
-					foreach (var job in _done)
-					{
-						try { job.Finally(_Finally); }
-						catch (Exception e) { exceptions.Add(e); }
 					}
 
-					foreach (var e in exceptions)
-						WriteWarning("Exception in Finally: " + e.Message);
+					// invoke End
+					if (end != null && !Stopping)
+					{
+						foreach (var job in _done)
+							WriteJob(job, job.End(end));
+					}
 				}
+				finally
+				{
+					// invoke Finally even on stopping, do not throw, closing is still ahead
+					if (_Finally != null)
+					{
+						// let them all to work
+						var exceptions = new List<Exception>();
+						foreach (var job in _done)
+						{
+							try
+							{
+								job.Finally(_Finally);
+							}
+							catch (Exception e)
+							{
+								exceptions.Add(e);
+							}
+						}
 
-				// close
-				foreach (var job in _done)
-					job.Close();
+						// then write errors as warnings
+						if (exceptions.Count > 0 && !Stopping)
+						{
+							try
+							{
+								foreach (var e in exceptions)
+									WriteWarning("Exception in Finally: " + e.Message);
+							}
+							catch (RuntimeException)
+							{ }
+						}
+					}
 
-				_done.Clear();
+					// close jobs
+					foreach (var job in _done)
+						job.Close();
+					_done.Clear();
+				}
 			}
 		}
 		protected override void EndProcessing()
@@ -449,11 +478,18 @@ Items /sec : {6}
 			foreach (var job in _work)
 				wait.Add(job.Wait);
 
+			//! #3: here it used to hang
 			WaitHandle.WaitAny(wait.ToArray());
 		}
 		public void Dispose()
 		{
+			if (!_closed)
+				Close(null);
+		}
+		protected override void StopProcessing()
+		{
 			Close(null);
+			base.StopProcessing();
 		}
 	}
 }

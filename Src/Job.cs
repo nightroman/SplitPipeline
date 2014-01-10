@@ -69,6 +69,11 @@ namespace SplitPipeline
 		}
 		public void Finally(string script)
 		{
+			// it can be still running, e.g. on stopping
+			if (_posh.InvocationStateInfo.State == PSInvocationState.Running)
+				_posh.Stop();
+			
+			// invoke 
 			_posh.Commands.Clear();
 			_posh.AddScript(script, false);
 			_posh.Invoke();
@@ -98,11 +103,8 @@ namespace SplitPipeline
 		}
 		public void Close()
 		{
-			if (_posh.InvocationStateInfo.State == PSInvocationState.Running)
-				_posh.Stop();
-
-			_posh.Runspace.Dispose();
 			_posh.Dispose();
+			_posh.Runspace.Dispose();
 		}
 	}
 }
