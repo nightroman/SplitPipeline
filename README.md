@@ -2,10 +2,9 @@
 SplitPipeline - Parallel Data Processing in PowerShell
 ======================================================
 
-This is a PowerShell module for parallel processing. Split-Pipeline splits the
-input, processes parts by parallel pipelines, and joins the output that may be
-processed directly. It works without collecting the entire input which may be
-even infinite.
+PowerShell module for parallel data processing. Split-Pipeline splits the
+input, processes parts by parallel pipelines, and outputs data for further
+processing. It works without collecting the entire input, large or infinite.
 
 ## Quick Start
 

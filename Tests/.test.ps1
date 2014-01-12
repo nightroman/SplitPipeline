@@ -1,5 +1,11 @@
 
+<#
+.Synopsis
+	Test script (https://github.com/nightroman/Invoke-Build)
+#>
+
 Import-Module SplitPipeline
+Set-StrictMode -Version Latest
 
 task FilterInputUniqueByScript {
 	$hash = @{}
@@ -154,6 +160,10 @@ task Refill {
 }
 
 task ApartmentState {
+	# default
+	assert ("MTA" -eq (1 | Split-Pipeline { [System.Threading.Thread]::CurrentThread.ApartmentState }))
+	# MTA
 	assert ("MTA" -eq (1 | Split-Pipeline -ApartmentState MTA { [System.Threading.Thread]::CurrentThread.ApartmentState }))
+	# STA
 	assert ("STA" -eq (1 | Split-Pipeline -ApartmentState STA { [System.Threading.Thread]::CurrentThread.ApartmentState }))
 }

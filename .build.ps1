@@ -21,8 +21,7 @@
 	https://github.com/nightroman/Helps
 #>
 
-param
-(
+param(
 	$Configuration = 'Release'
 )
 
@@ -68,9 +67,9 @@ task ShowHelp Help, {
 	. { Get-Help Split-Pipeline -Full; Get-Help about_SplitPipeline } | more
 }
 
-# Call tests.
+# Tests.
 task Test {
-	Invoke-Build * Tests\Test.build.ps1
+	Invoke-Build ** Tests
 }
 
 # Import markdown tasks ConvertMarkdown and RemoveMarkdownHtml.
@@ -106,10 +105,9 @@ task Version {
 # Make NuGet package.
 task NuGet Package, Version, {
 	$text = @'
-This is a PowerShell module for parallel processing. Split-Pipeline splits the
-input, processes parts by parallel pipelines, and joins the output that may be
-processed directly. It works without collecting the entire input which may be
-even infinite.
+PowerShell module for parallel data processing. Split-Pipeline splits the
+input, processes parts by parallel pipelines, and outputs data for further
+processing. It works without collecting the entire input, large or infinite.
 '@
 	# nuspec
 	Set-Content z\Package.nuspec @"
@@ -120,12 +118,13 @@ even infinite.
 		<version>$Version</version>
 		<owners>Roman Kuzmin</owners>
 		<authors>Roman Kuzmin</authors>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
 		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
-		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<summary>$text</summary>
 		<description>$text</description>
 		<tags>PowerShell Module Parallel</tags>
+		<releaseNotes>https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md</releaseNotes>
 	</metadata>
 </package>
 "@

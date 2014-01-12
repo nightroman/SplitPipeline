@@ -7,8 +7,8 @@ SHORT DESCRIPTION
 
 LONG DESCRIPTION
     The only cmdlet is Split-Pipeline. It splits the input, processes parts by
-    parallel pipelines, and joins the output that may be processed directly.
-    It works without collecting the entire input which may be even infinite.
+    parallel pipelines, and outputs data for further processing. It works
+    without collecting the entire input, large or infinite.
 
     Get help:
     PS> Import-Module SplitPipeline

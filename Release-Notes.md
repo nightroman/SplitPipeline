@@ -1,6 +1,28 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.3.0
+
+Reviewed automatic load balancing, made it the default and less aggressive
+(*potentially incompatible change*). The obsolete switch `Auto` still exists
+but it is ignored. Use the parameter `Load` in order to specify part limits.
+E.g. `-Load N,N` tells to use N items per pipeline, i.e. no load balancing.
+
+In order words: a) `Auto` is slightly redundant with `Load`; b) not using
+`Auto`, e.g. forgetting, often causes less effective work. `Auto` will be
+removed in the next version.
+
+Improved stopping (e.g. by `[Ctrl-C]`):
+
+- Fixed some known and some potential issues.
+- The `Finally` script should work on stopping.
+
+Amended verbose messages. They are for:
+
+- Each job feed with current data.
+- End of processing with end data.
+- Summary with totals.
+
 ## v1.2.1
 
 Added processing of `StopProcessing()` which is called on `[Ctrl-C]`. Note that

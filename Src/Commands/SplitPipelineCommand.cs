@@ -97,6 +97,7 @@ namespace SplitPipeline.Commands
 			get { return _iss.ApartmentState; }
 			set { _iss.ApartmentState = value; }
 		}
+
 		PSObject _Filter;
 		IDictionary _FilterHash;
 		ScriptBlock _FilterScript;
@@ -107,14 +108,16 @@ namespace SplitPipeline.Commands
 		readonly Stopwatch _infoTimeTotal = Stopwatch.StartNew();
 		readonly object _syncObject = new object();
 		string _Script, _Begin, _End, _Finally;
+		bool xStop;
 		bool _isEnd;
 		bool _closed;
+		bool _verbose;
 		int _currentLoad;
 		int _infoItemCount;
 		int _infoPartCount;
 		int _infoWaitCount;
 		int _infoMaxQueue;
-		const double LoadDelta = 0.05;
+
 		protected override void BeginProcessing()
 		{
 			_currentLoad = MinLoad;
@@ -150,101 +153,135 @@ namespace SplitPipeline.Commands
 					_iss.Commands.Add(new SessionStateFunctionEntry(name, function.Definition));
 				}
 			}
+
+			object parameter;
+			if (MyInvocation.BoundParameters.TryGetValue("Verbose", out parameter))
+				_verbose = ((SwitchParameter)parameter).ToBool();
+			else
+				_verbose = (ActionPreference)GetVariableValue("VerbosePreference") != ActionPreference.SilentlyContinue;
 		}
-		//! Write* methods may throw on stopping
-		void Close(string end)
+		protected override void ProcessRecord()
 		{
-			lock (_syncObject)
+			try
 			{
-				// close once
-				if (_closed)
-					return;
-				_closed = true;
+				Enqueue(InputObject);
 
-				// move jobs to done
-				while (_work.Count > 0)
-				{
-					var node = _work.First;
-					_work.RemoveFirst();
-					_done.AddLast(node);
-				}
-
-				// done?
-				if (_done.Count == 0)
+				if (xStop || _queue.Count < _currentLoad)
 					return;
 
-				try
-				{
-					// summary
-					if (!Stopping)
-					{
-						WriteVerbose(string.Format(null, @"
-Item count : {0}
-Part count : {1}
-Pipe count : {2}
-Wait count : {3}
-Max queue  : {4}
-Total time : {5}
-Items /sec : {6}
-", _infoItemCount, _infoPartCount, _done.Count, _infoWaitCount, _infoMaxQueue, _infoTimeTotal.Elapsed, _infoItemCount / _infoTimeTotal.Elapsed.TotalSeconds));
-					}
+				while (!xStop && _queue.Count >= MaxQueue)
+					Feed(true);
 
-					// invoke End
-					if (end != null && !Stopping)
-					{
-						foreach (var job in _done)
-							WriteJob(job, job.End(end));
-					}
-				}
-				finally
-				{
-					// invoke Finally even on stopping, do not throw, closing is still ahead
-					if (_Finally != null)
-					{
-						// let them all to work
-						var exceptions = new List<Exception>();
-						foreach (var job in _done)
-						{
-							try
-							{
-								job.Finally(_Finally);
-							}
-							catch (Exception e)
-							{
-								exceptions.Add(e);
-							}
-						}
-
-						// then write errors as warnings
-						if (exceptions.Count > 0 && !Stopping)
-						{
-							try
-							{
-								foreach (var e in exceptions)
-									WriteWarning("Exception in Finally: " + e.Message);
-							}
-							catch (RuntimeException)
-							{ }
-						}
-					}
-
-					// close jobs
-					foreach (var job in _done)
-						job.Close();
-					_done.Clear();
-				}
+				if (!xStop && _queue.Count >= _currentLoad)
+					Feed(false);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
 			}
 		}
 		protected override void EndProcessing()
 		{
-			_isEnd = true;
-			WriteVerbose(string.Format(null, "End: Items: {0}", _queue.Count));
+			try
+			{
+				_isEnd = true;
 
-			while (!Stopping && (_queue.Count > 0 || _work.Count > 0))
-				Feed(true);
+				if (_verbose)
+					WriteVerbose(string.Format(null, "Split-Pipeline: End, Queue = {0}", _queue.Count));
 
-			Close(_End);
+				while (!xStop && (_queue.Count > 0 || _work.Count > 0))
+					Feed(true);
+
+				Close(_End);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
+			}
 		}
+		protected override void StopProcessing()
+		{
+			xStop = true;
+			Close(null);
+		}
+		public void Dispose()
+		{
+			if (!_closed)
+				Close(null);
+		}
+		new void WriteDebug(string value)
+		{
+			//! may throw on stopping
+			try
+			{
+				base.WriteDebug(value);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
+			}
+		}
+		new void WriteError(ErrorRecord value)
+		{
+			//! may throw on stopping
+			try
+			{
+				base.WriteError(value);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
+			}
+		}
+		new void WriteObject(object value)
+		{
+			//! may throw on stopping
+			try
+			{
+				base.WriteObject(value);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
+			}
+		}
+		new void WriteVerbose(string value)
+		{
+			//! may throw on stopping
+			try
+			{
+				if (!xStop)
+					base.WriteVerbose(value);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
+			}
+		}
+		new void WriteWarning(string value)
+		{
+			//! may throw on stopping
+			try
+			{
+				base.WriteWarning(value);
+			}
+			catch
+			{
+				if (!xStop)
+					throw;
+			}
+		}
+
+		/// <summary>
+		/// Puts the object to the input queue unless it is filtered out.
+		/// Callers must check the maximum queue count.
+		/// </summary>
 		void Enqueue(PSObject value)
 		{
 			if (Filter != null)
@@ -269,25 +306,164 @@ Items /sec : {6}
 			if (_infoMaxQueue < _queue.Count)
 				_infoMaxQueue = _queue.Count;
 		}
-		protected override void ProcessRecord()
+		/// <summary>
+		/// Gets the next part of input items and feeds them to a ready job.
+		/// If forced it waits for a ready job.
+		/// </summary>
+		void Feed(bool force)
 		{
-			Enqueue(InputObject);
-			if (_queue.Count < _currentLoad)
+			// try to make more jobs ready and more input available in refill mode
+			Take();
+
+			// no input? check this after taking, refill adds input on taking
+			if (_queue.Count == 0)
 				return;
 
-			while (_queue.Count >= MaxQueue)
-				Feed(true);
+			// ready jobs?
+			while (Count - _work.Count == 0)
+			{
+				// no ready jobs, done if not forced
+				if (!force)
+					return;
 
-			if (_queue.Count >= _currentLoad)
-				Feed(false);
+				// wait for jobs and make them ready
+				Wait();
+				Take();
+			}
+
+			// split the queue equally between all potential jobs
+			int load = _queue.Count / Count;
+			if (load * Count < _queue.Count)
+				++load;
+
+			// correct by limits
+			if (load > MaxLoad)
+				load = MaxLoad;
+			else if (load < MinLoad)
+				load = MinLoad;
+
+			// store the last
+			_currentLoad = load;
+
+			lock (_syncObject)
+			{
+				int nReadyJob = Count - _work.Count;
+				if (xStop || nReadyJob == 0)
+					return;
+
+				do
+				{
+					// limit load by the queue
+					if (load > _queue.Count)
+					{
+						load = _queue.Count;
+
+						// if load is less than minimum then stop feeding if it's not the end
+						if (load < MinLoad && !_isEnd)
+							return;
+					}
+
+					// ensure the job node
+					LinkedListNode<Job> node = _done.First;
+					if (node == null)
+					{
+						node = new LinkedListNode<Job>(new Job(RunspaceFactory.CreateRunspace(_iss)));
+						_work.AddLast(node);
+						Write(node.Value, node.Value.InvokeBegin(_Begin, _Script));
+					}
+					else
+					{
+						_done.RemoveFirst();
+						_work.AddLast(node);
+					}
+
+					if (xStop)
+						return;
+
+					// feed info
+					if (_verbose)
+						WriteVerbose(string.Format(null, "Split-Pipeline: Jobs = {0}; Load = {1}; Queue = {2}", _work.Count, load, _queue.Count));
+
+					// feed the job
+					++_infoPartCount;
+					node.Value.BeginInvoke(_queue, load);
+				}
+				while (!xStop && --nReadyJob > 0 && _queue.Count > 0);
+			}
 		}
-		void WriteJob(Job job, ICollection<PSObject> result)
+		/// <summary>
+		/// Finds finished jobs, writes their output, moves them to done.
+		/// If ordered stops on the first found working job, it has to finish.
+		/// </summary>
+		void Take()
 		{
-			if (result != null && result.Count > 0)
+			lock (_syncObject)
+			{
+				var node = _work.First;
+				while (node != null)
+				{
+					if (node.Value.IsWorking)
+					{
+						if (Order)
+							break;
+
+						node = node.Next;
+						continue;
+					}
+
+					// complete the job
+					var job = node.Value;
+					if (xStop)
+						return;
+					Write(job, job.EndInvoke());
+
+					// move node, step next
+					var next = node.Next;
+					_work.Remove(node);
+					_done.AddLast(node);
+					node = next;
+				}
+			}
+		}
+		/// <summary>
+		/// Waits for any job to finish. If ordered then its the first job in the queue.
+		/// </summary>
+		void Wait()
+		{
+			var wait = new List<WaitHandle>(Count);
+
+			lock (_syncObject)
+			{
+				++_infoWaitCount;
+
+				if (Order)
+				{
+					var node = _work.First;
+					var job = node.Value;
+					Write(job, job.EndInvoke());
+					_work.Remove(node);
+					_done.AddLast(node);
+					return;
+				}
+
+				foreach (var job in _work)
+					wait.Add(job.WaitHandle);
+			}
+
+			//! #3: here it used to hang
+			WaitHandle.WaitAny(wait.ToArray());
+		}
+		/// <summary>
+		/// Writes job output objects and propagates streams.
+		/// Moves refilling objects from output to the queue.
+		/// </summary>
+		void Write(Job job, ICollection<PSObject> output)
+		{
+			if (output != null && output.Count > 0)
 			{
 				if (Refill)
 				{
-					foreach (var it in result)
+					foreach (var it in output)
 					{
 						if (it != null)
 						{
@@ -306,7 +482,7 @@ Items /sec : {6}
 				}
 				else
 				{
-					WriteObject(result, true);
+					WriteObject(output, true);
 				}
 			}
 
@@ -340,156 +516,92 @@ Items /sec : {6}
 				streams.Error.Clear();
 			}
 		}
-		void Feed(bool force)
+		/// <summary>
+		/// Moves all jobs to done then for each jobs:
+		/// -- calls the end script on ending;
+		/// -- calls the finally script always;
+		/// -- closes the job.
+		/// </summary>
+		void Close(string end)
 		{
-			// try to make more pipes ready and more input in refill mode
-			Take();
-
-			// nothing to feed
-			if (_queue.Count == 0)
-				return;
-
-			// count ready pipes
-			int ready;
-			while (0 == (ready = Count - _work.Count))
+			lock (_syncObject)
 			{
-				// no pipes, done if not forced
-				if (!force)
+				// close once
+				if (_closed)
+					return;
+				_closed = true;
+
+				// move jobs to done
+				while (_work.Count > 0)
+				{
+					var node = _work.First;
+					_work.RemoveFirst();
+					_done.AddLast(node);
+				}
+
+				// done?
+				if (_done.Count == 0)
 					return;
 
-				// wait for one or more pipes and make ready
-				Wait();
-				Take();
-			}
-
-			// part by the queue
-			bool byQueue = false;
-			if (Auto)
-			{
-				int partQueue = _queue.Count / Count;
-				if (partQueue * Count < _queue.Count)
-					++partQueue;
-				if (partQueue > MaxLoad)
-					partQueue = MaxLoad;
-				else if (partQueue < MinLoad)
-					partQueue = MinLoad;
-
-				if (_isEnd || partQueue > _currentLoad)
+				try
 				{
-					byQueue = true;
-					_currentLoad = partQueue;
-					WriteVerbose(string.Format(null, "Work: {0}, *Load: {1}, Queue: {2}", _work.Count, _currentLoad, _queue.Count));
+					// summary
+					if (_isEnd && _verbose)
+						WriteVerbose(string.Format(null, @"Split-Pipeline:
+Item count = {0}
+Part count = {1}
+Pipe count = {2}
+Wait count = {3}
+Max queue  = {4}
+Total time = {5}
+Items /sec = {6}
+", _infoItemCount, _infoPartCount, _done.Count, _infoWaitCount, _infoMaxQueue, _infoTimeTotal.Elapsed, _infoItemCount / _infoTimeTotal.Elapsed.TotalSeconds));
+
+					// invoke the end script on ending, if any
+					if (!xStop && end != null)
+					{
+						foreach (var job in _done)
+							Write(job, job.InvokeEnd(end));
+					}
+				}
+				finally
+				{
+					// invoke the finally script always, do not throw, closing is ahead
+					if (_Finally != null)
+					{
+						// let them all to work
+						var exceptions = new List<Exception>();
+						foreach (var job in _done)
+						{
+							try
+							{
+								job.InvokeFinally(_Finally);
+							}
+							catch (Exception e)
+							{
+								exceptions.Add(e);
+							}
+						}
+
+						// then write errors as warnings
+						if (!xStop && exceptions.Count > 0)
+						{
+							try
+							{
+								foreach (var e in exceptions)
+									WriteWarning("Exception in Finally: " + e.Message);
+							}
+							catch (RuntimeException)
+							{ }
+						}
+					}
+
+					// close jobs
+					foreach (var job in _done)
+						job.Close();
+					_done.Clear();
 				}
 			}
-
-			do
-			{
-				int part = _currentLoad;
-				if (part > _queue.Count)
-				{
-					if (!_isEnd && part >= _queue.Count + Count)
-						break;
-					part = _queue.Count;
-				}
-
-				// ensure the job node
-				LinkedListNode<Job> node = _done.First;
-				if (node == null)
-				{
-					node = new LinkedListNode<Job>(new Job(RunspaceFactory.CreateRunspace(_iss)));
-					_work.AddLast(node);
-					WriteJob(node.Value, node.Value.Begin(_Script, _Begin));
-				}
-				else
-				{
-					_done.RemoveFirst();
-					_work.AddLast(node);
-				}
-
-				// feed the job
-				++_infoPartCount;
-				node.Value.Feed(_queue, part);
-			}
-			while (--ready > 0 && _queue.Count > 0);
-
-			if (!Auto || byQueue || _infoPartCount <= Count)
-				return;
-
-			// not quite busy
-			if (_queue.Count == 0)
-			{
-				var newLoad = (int)(_currentLoad * 1.5);
-				if (newLoad == _currentLoad)
-					++newLoad;
-				if (newLoad > MaxLoad)
-					newLoad = MaxLoad;
-
-				_currentLoad = newLoad;
-				WriteVerbose(string.Format(null, "Work: {0}, +Load: {1}, Queue: {2}", _work.Count, _currentLoad, _queue.Count));
-			}
-			else
-			{
-				WriteVerbose(string.Format(null, "Work: {0}, =Load: {1}, Queue: {2}", _work.Count, _currentLoad, _queue.Count));
-			}
-		}
-		void Take()
-		{
-			var node = _work.First;
-			while (node != null)
-			{
-				if (Stopping)
-					return;
-
-				if (node.Value.IsWorking)
-				{
-					if (Order)
-						break;
-
-					node = node.Next;
-					continue;
-				}
-
-				// complete the job
-				var job = node.Value;
-				WriteJob(job, job.Take());
-
-				// move node, step next
-				var next = node.Next;
-				_work.Remove(node);
-				_done.AddLast(node);
-				node = next;
-			}
-		}
-		void Wait()
-		{
-			++_infoWaitCount;
-
-			if (Order)
-			{
-				var node = _work.First;
-				var job = node.Value;
-				WriteJob(job, job.Take());
-				_work.Remove(node);
-				_done.AddLast(node);
-				return;
-			}
-
-			var wait = new List<WaitHandle>(Count);
-			foreach (var job in _work)
-				wait.Add(job.Wait);
-
-			//! #3: here it used to hang
-			WaitHandle.WaitAny(wait.ToArray());
-		}
-		public void Dispose()
-		{
-			if (!_closed)
-				Close(null);
-		}
-		protected override void StopProcessing()
-		{
-			Close(null);
-			base.StopProcessing();
 		}
 	}
 }

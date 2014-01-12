@@ -14,34 +14,33 @@ Import-Module SplitPipeline
 	Splits pipeline input and processes its parts by parallel pipelines.
 '@
 	description = @'
-    The cmdlet splits the input, processes parts by parallel pipelines, and
-    joins the output that may be processed directly. It works without
-    collecting the entire input which may be even infinite.
+    The cmdlet splits the input, processes its parts by parallel pipelines, and
+    outputs the results for further processing. It works without collecting the
+    entire input, large or even infinite.
 
-	Input is processed by parts. If processing is relatively fast then it is
-	important to specify part size limits by the parameter Load or/and enable
-	automatic load balancing by the switch Auto.
+	If processing is relatively fast then it is important to specify the Load
+	limits. Otherwise Split-Pipeline may work slower than a standard pipeline.
 
 	The cmdlet creates several pipelines. Each pipeline is created when input
 	parts are available, created pipelines are busy, and their number is less
 	than Count. Each created pipeline is used for processing several input
 	parts, one at a time.
 
-	Because each pipeline runs in a separate runspace variables, functions, and
-	modules from the main script are not available for the processing script by
-	default. Items accessed in a pipeline script should be explicitly listed by
-	Variable, Function, and Module parameters.
+	Because each pipeline works in its own runspace variables, functions, and
+	modules from the main script are not automatically available for pipeline
+	scripts. Such items should be specified by Variable, Function, and Module
+	parameters in order to be available.
 
-	The Begin and End script are invoked for each created pipeline before and
-	after processing. Each input part is piped to the script block Script which
-	is invoked by one of the available or newly created pipelines.
+	The Begin and End scripts are invoked for each created pipeline once before
+	and after processing. Each input part is piped to the script block Script.
+	The Finally script is invoked after all, even on failures or stopping.
 
 	If number of created pipelines is equal to Count and all pipelines are busy
 	then incoming input items are enqueued for later processing. If the queue
-	size hits the limit then the algorithm waits for a pipeline to complete.
+	size hits the limit then the algorithm waits for any pipeline to complete.
 
-	Input items are not necessarily processed in the same order as they come.
-	But output can be ordered according to input parts, use the switch Order.
+	Input parts are not necessarily processed in the same order as they come.
+	But output parts can be ordered according to input, use the switch Order.
 '@
 	parameters = @{
 		Script = @'
@@ -49,17 +48,17 @@ Import-Module SplitPipeline
 		part piped to it. The script either processes the whole part ($input)
 		or each item ($_) separately in the "process" block. Examples:
 
-			# Process a whole $input part:
+			# Process the whole $input part:
 			... | Split-Pipeline { $input | %{ $_ } }
 
-			# Process each item $_ separately:
+			# Process input items $_ separately:
 			... | Split-Pipeline { process { $_ } }
 
-		A script may have any of special blocks "begin", "process", and "end":
+		The script may have any of "begin", "process", and "end" blocks:
 
 			... | Split-Pipeline { begin {...} process { $_ } end {...} }
 
-		Note that such "begin" and "end" blocks are called for input parts but
+		Note that "begin" and "end" blocks are called for each input part but
 		scripts defined by parameters Begin and End are called for pipelines.
 '@
 		Begin = @'
@@ -103,10 +102,10 @@ Import-Module SplitPipeline
 		One or two values specifying the minimum and maximum number of input
 		objects for each parallel pipeline. The first value is the recommended
 		minimum, 1 is the default. The second value is the maximum, not limited
-		if omitted.
+		by default.
 
-		If processing of input items is fast then increasing the minimum may
-		improve performance.
+		If processing is fast then it is important to specify a proper minimum.
+		Otherwise Split-Pipeline may work even slower than a standard pipeline.
 
 		Setting the maximum number causes more frequent output if the limit is
 		actually hit. This may be important for feeding downstream commands in
@@ -121,13 +120,7 @@ Import-Module SplitPipeline
 		Thus, depending on data Refill scenarios may fail due to out of memory.
 '@
 		Auto = @'
-		Tells to perform automatic load balancing during processing in order to
-		increase utilization of pipelines. Use Verbose in order to view some
-		details during and after processing.
-
-		Note that using of reasonable load values known from practice may be
-		still useful, the algorithm may work effectively from the start and
-		still be able to adjust the load dynamically.
+		*** OBSOLETE *** It will be removed in the next version.
 '@
 		Variable = @'
 		Variables imported from the current runspace to parallel.
@@ -186,7 +179,7 @@ Import-Module SplitPipeline
 			}
 			remarks = @'
 	Two commands perform the same job simulating long but not processor
-	consuming operations of each item. The first command takes about 10
+	consuming operations on each item. The first command takes about 10
 	seconds. The second takes about 2 seconds due to Split-Pipeline.
 '@
 			test = { . $args[0] }
@@ -219,10 +212,10 @@ Import-Module SplitPipeline
 		}
 		@{
 			remarks = @'
-	Because each pipeline runs in a separate runspace variables, functions, and
-	modules from the main script are not available for the processing script by
-	default. Items accessed in a pipeline script should be explicitly listed by
-	Variable, Function, and Module parameters.
+	Because each pipeline works in its own runspace variables, functions, and
+	modules from the main script are not automatically available for pipeline
+	scripts. Such items should be specified by Variable, Function, and Module
+	parameters in order to be available.
 
     > $arr = @('one', 'two', 'three'); 0..2 | ForEach-Object {$arr[$_]}
     one
