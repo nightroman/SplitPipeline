@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.3.1
+
+Removed the obsolete switch `Auto`.
+
 ## v1.3.0
 
 Reviewed automatic load balancing, made it the default and less aggressive

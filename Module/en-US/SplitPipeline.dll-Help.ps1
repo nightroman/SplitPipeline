@@ -115,12 +115,12 @@ Import-Module SplitPipeline
 		in order to limit the input queue size and avoid out of memory issues.
 		The maximum queue size is set internally to Load[1] * Count.
 
+		Use the switch Verbose in order to get statistics messages with data
+		which may help to choose reasonable load limits.
+
 		CAUTION: The queue limit may be ignored and exceeded if Refill is used.
 		Any number of objects written via [ref] go straight to the input queue.
 		Thus, depending on data Refill scenarios may fail due to out of memory.
-'@
-		Auto = @'
-		*** OBSOLETE *** It will be removed in the next version.
 '@
 		Variable = @'
 		Variables imported from the current runspace to parallel.

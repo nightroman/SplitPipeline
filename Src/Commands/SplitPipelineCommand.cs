@@ -45,8 +45,6 @@ namespace SplitPipeline.Commands
 		[Parameter]
 		public int Count { get; set; }
 		[Parameter]
-		public SwitchParameter Auto { get; set; }
-		[Parameter]
 		public SwitchParameter Order { get; set; }
 		[Parameter]
 		public SwitchParameter Refill { get; set; }

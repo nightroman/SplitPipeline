@@ -35,26 +35,27 @@ Copy the directory *SplitPipeline* to a PowerShell module directory, see
 **Step 4:**
 
 Try these three commands performing the same job simulating long but not
-processor consuming operations of each item:
+processor consuming operations on each item:
 
-    1..10 | . {process{$_; sleep 1}}
-    1..10 | Split-Pipeline {process{$_; sleep 1}}
-    1..10 | Split-Pipeline -Count 10 {process{$_; sleep 1}}
+    1..10 | . {process{ $_; sleep 1 }}
+    1..10 | Split-Pipeline {process{ $_; sleep 1 }}
+    1..10 | Split-Pipeline -Count 10 {process{ $_; sleep 1 }}
 
 Output of all commands is the same, numbers from 1 to 10 (Split-Pipeline does
 not guarantee the same order without the switch `Order`). But consumed times
 are different. Let's measure them:
 
-    Measure-Command { 1..10 | . {process{$_; sleep 1}} }
-    Measure-Command { 1..10 | Split-Pipeline {process{$_; sleep 1}} }
-    Measure-Command { 1..10 | Split-Pipeline -Count 10 {process{$_; sleep 1}} }
+    Measure-Command { 1..10 | . {process{ $_; sleep 1 }} }
+    Measure-Command { 1..10 | Split-Pipeline {process{ $_; sleep 1 }} }
+    Measure-Command { 1..10 | Split-Pipeline -Count 10 {process{ $_; sleep 1 }} }
 
 The first command takes about 10 seconds.
 
-Performance of the second command depends on the number of processors. For
-example, with 2 processors it takes about 6 seconds.
+Performance of the second command depends on the number of processors which is
+used as the default split count. For example, with 2 processors it takes about
+6 seconds.
 
 The third command takes about 2 seconds. The number of processors is not very
-important for such sleeping jobs. The split count is important, increasing it
+important for such sleeping jobs. The split count is important. Increasing it
 to some extent improves overall performance. As for intensive jobs, the split
 count normally should not exceed the number of processors.
