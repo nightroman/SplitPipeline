@@ -110,7 +110,6 @@ namespace SplitPipeline.Commands
 		bool _isEnd;
 		bool _closed;
 		bool _verbose;
-		int _currentLoad;
 		int _infoItemCount;
 		int _infoPartCount;
 		int _infoWaitCount;
@@ -118,8 +117,6 @@ namespace SplitPipeline.Commands
 
 		protected override void BeginProcessing()
 		{
-			_currentLoad = MinLoad;
-
 			_Script = Script.ToString();
 			if (Begin != null)
 				_Begin = Begin.ToString();
@@ -164,13 +161,13 @@ namespace SplitPipeline.Commands
 			{
 				Enqueue(InputObject);
 
-				if (xStop || _queue.Count < _currentLoad)
+				if (_queue.Count < MinLoad)
 					return;
 
-				while (!xStop && _queue.Count >= MaxQueue)
+				while (_queue.Count >= MaxQueue && !xStop)
 					Feed(true);
 
-				if (!xStop && _queue.Count >= _currentLoad)
+				if (_queue.Count >= MinLoad && !xStop)
 					Feed(false);
 			}
 			catch
@@ -317,8 +314,8 @@ namespace SplitPipeline.Commands
 			if (_queue.Count == 0)
 				return;
 
-			// ready jobs?
-			while (Count - _work.Count == 0)
+			// all busy?
+			if (Count - _work.Count == 0)
 			{
 				// no ready jobs, done if not forced
 				if (!force)
@@ -334,14 +331,11 @@ namespace SplitPipeline.Commands
 			if (load * Count < _queue.Count)
 				++load;
 
-			// correct by limits
+			// check limits
 			if (load > MaxLoad)
 				load = MaxLoad;
 			else if (load < MinLoad)
 				load = MinLoad;
-
-			// store the last
-			_currentLoad = load;
 
 			lock (_syncObject)
 			{
@@ -356,12 +350,12 @@ namespace SplitPipeline.Commands
 					{
 						load = _queue.Count;
 
-						// if load is less than minimum then stop feeding if it's not the end
+						// if load is less than minimum then exit on normal processing
 						if (load < MinLoad && !_isEnd)
 							return;
 					}
 
-					// ensure the job node
+					// next job node
 					LinkedListNode<Job> node = _done.First;
 					if (node == null)
 					{

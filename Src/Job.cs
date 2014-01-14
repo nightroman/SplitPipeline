@@ -28,7 +28,7 @@ namespace SplitPipeline
 	{
 		readonly PowerShell _posh = PowerShell.Create();
 		PSDataCollection<PSObject> _input;
-		IAsyncResult _result;
+		IAsyncResult _async;
 		
 		/// <summary>
 		/// Gets the pipeline streams.
@@ -37,7 +37,7 @@ namespace SplitPipeline
 		/// <summary>
 		/// Gets the wait handle of the async pipeline.
 		/// </summary>
-		public WaitHandle WaitHandle { get { return _result.AsyncWaitHandle; } }
+		public WaitHandle WaitHandle { get { return _async.AsyncWaitHandle; } }
 		/// <summary>
 		/// Gets true if it is not completed or failed.
 		/// </summary>
@@ -87,7 +87,7 @@ namespace SplitPipeline
 				_input.Add(input.Dequeue());
 			_input.Complete();
 
-			_result = _posh.BeginInvoke(_input);
+			_async = _posh.BeginInvoke(_input);
 		}
 		/// <summary>
 		/// Waits for the pipeline to finish and returns its output.
@@ -97,10 +97,10 @@ namespace SplitPipeline
 		{
 			try
 			{
-				if (_result == null)
+				if (_async == null)
 					return null;
 
-				return _posh.EndInvoke(_result);
+				return _posh.EndInvoke(_async);
 			}
 			finally
 			{

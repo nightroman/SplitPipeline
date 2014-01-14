@@ -32,6 +32,9 @@
 
 	Result order is different due to different order of node processing.
 	Besides, order of Split-Pipeline results is not necessarily constant.
+
+.Link
+	https://github.com/nightroman/SplitPipeline/blob/master/Tests/Test-Refill.ps1
 #>
 
 ### Hierarchical data: container nodes are represented by hashtables

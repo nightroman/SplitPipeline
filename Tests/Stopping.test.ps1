@@ -1,7 +1,10 @@
 
 <#
 .Synopsis
-	Test script (https://github.com/nightroman/Invoke-Build)
+	Tests stopping of Split-Pipeline.
+
+.Link
+	Invoked by https://github.com/nightroman/Invoke-Build
 #>
 
 Import-Module SplitPipeline

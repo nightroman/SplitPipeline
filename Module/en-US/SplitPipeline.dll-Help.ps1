@@ -73,11 +73,11 @@ Import-Module SplitPipeline
 		resources instead of End or in addition to it.
 '@
 		Finally = @'
-		The script invoked for each pipeline before its closing. The goal is to
-		dispose resources, normally created by Begin. All output is ignored. If
-		the script fails then its exception message is written as a warning and
-		processing continues because Finally has to be called for all created
-		pipelines.
+		The script invoked for each opened pipeline before its closing, even on
+		terminating errors or stopping (Ctrl-C). It is normally needed in order
+		to release resources created by Begin. Output is ignored. If Finally
+		fails then its errors are written as warnings because it has to be
+		called for remaining pipelines.
 '@
 		Filter = @'
 		Either a hashtable for collecting unique input objects or a script used

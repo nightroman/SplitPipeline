@@ -3,7 +3,7 @@ SplitPipeline Release Notes
 
 ## v1.3.1
 
-Removed the obsolete switch `Auto`.
+Removed the obsolete switch `Auto` and pieces of old code.
 
 ## v1.3.0
 
