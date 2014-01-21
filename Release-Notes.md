@@ -1,6 +1,18 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.4.0
+
+*Potentially incompatible change*. By default, i.e. when `Load` is omitted, the
+whole input is collected and split evenly between parallel pipelines. This way
+seems to be the most effective in simple cases. In other cases, e.g. on large
+or slow input, `Load` should be used in order to enable processing of input
+parts and specify their limits.
+
+Corrected input item count in `Refill` mode in verbose statistics.
+
+Refactoring of ending, closing, and stopping.
+
 ## v1.3.1
 
 Removed the obsolete switch `Auto` and pieces of old code.

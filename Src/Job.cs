@@ -27,9 +27,8 @@ namespace SplitPipeline
 	class Job
 	{
 		readonly PowerShell _posh = PowerShell.Create();
-		PSDataCollection<PSObject> _input;
 		IAsyncResult _async;
-		
+
 		/// <summary>
 		/// Gets the pipeline streams.
 		/// </summary>
@@ -80,14 +79,14 @@ namespace SplitPipeline
 		/// <summary>
 		/// Starts the pipeline script async.
 		/// </summary>
-		public void BeginInvoke(Queue<PSObject> input, int count)
+		public void BeginInvoke(Queue<PSObject> queue, int count)
 		{
-			_input = new PSDataCollection<PSObject>(count);
+			var input = new PSDataCollection<PSObject>(count);
 			while (--count >= 0)
-				_input.Add(input.Dequeue());
-			_input.Complete();
+				input.Add(queue.Dequeue());
+			input.Complete();
 
-			_async = _posh.BeginInvoke(_input);
+			_async = _posh.BeginInvoke(input);
 		}
 		/// <summary>
 		/// Waits for the pipeline to finish and returns its output.
@@ -95,17 +94,10 @@ namespace SplitPipeline
 		/// <returns></returns>
 		public PSDataCollection<PSObject> EndInvoke()
 		{
-			try
-			{
-				if (_async == null)
-					return null;
+			if (_async == null)
+				return null;
 
-				return _posh.EndInvoke(_async);
-			}
-			finally
-			{
-				_input = null;
-			}
+			return _posh.EndInvoke(_async);
 		}
 		/// <summary>
 		/// Invokes the end script and returns its output.

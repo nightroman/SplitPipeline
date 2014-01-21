@@ -31,6 +31,11 @@ $ModuleRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) WindowsPow
 # Use MSBuild.
 use 4.0 MSBuild
 
+# Import markdown tasks ConvertMarkdown and RemoveMarkdownHtml.
+# https://github.com/nightroman/Invoke-Build/wiki/Partial-Incremental-Tasks
+try { Markdown.tasks.ps1 }
+catch { task ConvertMarkdown; task RemoveMarkdownHtml }
+
 # Build all.
 task Build {
 	exec { MSBuild Src\SplitPipeline.csproj /t:Build /p:Configuration=$Configuration /p:TargetFrameworkVersion=v2.0 }
@@ -50,7 +55,7 @@ task PostBuild {
 @{Help=1}
 
 # Build module help by Helps (https://github.com/nightroman/Helps).
-task Help -Inputs (Get-Item Src\Commands\*, Module\en-US\SplitPipeline.dll-Help.ps1) -Outputs "$ModuleRoot\en-US\SplitPipeline.dll-Help.xml" {
+task Help -Inputs (Get-Item Src\*.cs, Module\en-US\SplitPipeline.dll-Help.ps1) -Outputs "$ModuleRoot\en-US\SplitPipeline.dll-Help.xml" {
 	. Helps.ps1
 	Convert-Helps Module\en-US\SplitPipeline.dll-Help.ps1 $Outputs
 }
@@ -61,21 +66,10 @@ task TestHelp Help, {
 	Test-Helps Module\en-US\SplitPipeline.dll-Help.ps1
 }
 
-# Build and show help.
-task ShowHelp Help, {
-	Import-Module SplitPipeline
-	. { Get-Help Split-Pipeline -Full; Get-Help about_SplitPipeline } | more
-}
-
 # Tests.
 task Test {
 	Invoke-Build ** Tests
 }
-
-# Import markdown tasks ConvertMarkdown and RemoveMarkdownHtml.
-# <https://github.com/nightroman/Invoke-Build/wiki/Partial-Incremental-Tasks>
-try { Markdown.tasks.ps1 }
-catch { task ConvertMarkdown; task RemoveMarkdownHtml }
 
 # Make the package in z\tools NuGet.
 task Package ConvertMarkdown, {
@@ -96,19 +90,28 @@ task Package ConvertMarkdown, {
 	Release-Notes.htm
 }
 
-# Set $script:Version = assembly version
+# Set $script:Version
 task Version {
 	assert ((Get-Item $ModuleRoot\SplitPipeline.dll).VersionInfo.FileVersion -match '^(\d+\.\d+\.\d+)')
-	$script:Version = $matches[1]
+	($script:Version = $matches[1])
 }
 
 # Make NuGet package.
 task NuGet Package, Version, {
-	$text = @'
+	$summary = @'
 PowerShell module for parallel data processing. Split-Pipeline splits the
 input, processes parts by parallel pipelines, and outputs data for further
-processing. It works without collecting the entire input, large or infinite.
+processing. It may work without collecting the whole input, large or infinite.
 '@
+	$description = @"
+$summary
+
+To install SplitPipeline, follow Quick Start steps:
+
+https://github.com/nightroman/SplitPipeline
+
+---
+"@
 	# nuspec
 	Set-Content z\Package.nuspec @"
 <?xml version="1.0"?>
@@ -121,8 +124,8 @@ processing. It works without collecting the entire input, large or infinite.
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
 		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
-		<summary>$text</summary>
-		<description>$text</description>
+		<summary>$summary</summary>
+		<description>$description</description>
 		<tags>PowerShell Module Parallel</tags>
 		<releaseNotes>https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md</releaseNotes>
 	</metadata>
@@ -134,14 +137,17 @@ processing. It works without collecting the entire input, large or infinite.
 
 # Push to the repository with a version tag.
 task PushRelease Version, {
-     exec { git push }
-     exec { git tag -a "v$Version" -m "v$Version" }
-     exec { git push origin "v$Version" }
+	$changes = exec { git status --short }
+	assert (!$changes) "Please, commit changes."
+
+	exec { git push }
+	exec { git tag -a "v$Version" -m "v$Version" }
+	exec { git push origin "v$Version" }
 }
 
 # Make and push the NuGet package.
 task PushNuGet NuGet, {
-     exec { NuGet push "SplitPipeline.$Version.nupkg" }
+	exec { NuGet push "SplitPipeline.$Version.nupkg" }
 },
 Clean
 

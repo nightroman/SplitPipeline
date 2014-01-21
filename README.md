@@ -4,7 +4,7 @@ SplitPipeline - Parallel Data Processing in PowerShell
 
 PowerShell module for parallel data processing. Split-Pipeline splits the
 input, processes parts by parallel pipelines, and outputs data for further
-processing. It works without collecting the entire input, large or infinite.
+processing. It may work without collecting the whole input, large or infinite.
 
 ## Quick Start
 
@@ -32,10 +32,8 @@ Copy the directory *SplitPipeline* to a PowerShell module directory, see
     help about_SplitPipeline
     help -full Split-Pipeline
 
-**Step 4:**
-
-Try these three commands performing the same job simulating long but not
-processor consuming operations on each item:
+**Step 4:** Try these three commands performing the same job simulating long
+but not processor consuming operations on each item:
 
     1..10 | . {process{ $_; sleep 1 }}
     1..10 | Split-Pipeline {process{ $_; sleep 1 }}

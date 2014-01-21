@@ -23,33 +23,44 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Threading;
 
-namespace SplitPipeline.Commands
+namespace SplitPipeline
 {
 	[Cmdlet(VerbsCommon.Split, "Pipeline")]
 	public sealed class SplitPipelineCommand : PSCmdlet, IDisposable
 	{
 		[Parameter(Position = 0, Mandatory = true)]
 		public ScriptBlock Script { get; set; }
+
 		[Parameter]
 		public ScriptBlock Begin { get; set; }
+
 		[Parameter]
 		public ScriptBlock End { get; set; }
+
 		[Parameter]
 		public ScriptBlock Finally { get; set; }
+
 		[Parameter]
 		public string[] Variable { get; set; }
+
 		[Parameter]
 		public string[] Function { get; set; }
+
 		[Parameter]
 		public string[] Module { get; set; }
+
 		[Parameter]
 		public int Count { get; set; }
+
 		[Parameter]
 		public SwitchParameter Order { get; set; }
+
 		[Parameter]
 		public SwitchParameter Refill { get; set; }
+
 		[Parameter(ValueFromPipeline = true)]
 		public PSObject InputObject { get; set; }
+
 		[Parameter]
 		[ValidateCount(1, 2)]
 		public int[] Load
@@ -70,25 +81,30 @@ namespace SplitPipeline.Commands
 		int MinLoad = 1;
 		int MaxLoad = int.MaxValue;
 		int MaxQueue = int.MaxValue;
+
 		[Parameter]
 		public PSObject Filter
 		{
 			get { return _Filter; }
 			set
 			{
-				_Filter = value;
 				if (value != null)
 				{
+					_Filter = value;
 					_FilterHash = value.BaseObject as IDictionary;
 					if (_FilterHash == null)
 					{
 						_FilterScript = value.BaseObject as ScriptBlock;
 						if (_FilterScript == null)
-							throw new PSArgumentException("Expected hashtable or script block.", "Filter");
+							throw new PSArgumentException("Expected a hashtable or a script block.");
 					}
 				}
 			}
 		}
+		PSObject _Filter;
+		IDictionary _FilterHash;
+		ScriptBlock _FilterScript;
+
 		[Parameter]
 		public ApartmentState ApartmentState
 		{
@@ -96,9 +112,6 @@ namespace SplitPipeline.Commands
 			set { _iss.ApartmentState = value; }
 		}
 
-		PSObject _Filter;
-		IDictionary _FilterHash;
-		ScriptBlock _FilterScript;
 		readonly InitialSessionState _iss = InitialSessionState.CreateDefault();
 		readonly Queue<PSObject> _queue = new Queue<PSObject>();
 		readonly LinkedList<Job> _done = new LinkedList<Job>();
@@ -107,7 +120,6 @@ namespace SplitPipeline.Commands
 		readonly object _syncObject = new object();
 		string _Script, _Begin, _End, _Finally;
 		bool xStop;
-		bool _isEnd;
 		bool _closed;
 		bool _verbose;
 		int _infoItemCount;
@@ -117,6 +129,7 @@ namespace SplitPipeline.Commands
 
 		protected override void BeginProcessing()
 		{
+			// convert scripts to strings
 			_Script = Script.ToString();
 			if (Begin != null)
 				_Begin = Begin.ToString();
@@ -125,21 +138,26 @@ namespace SplitPipeline.Commands
 			if (Finally != null)
 				_Finally = Finally.ToString();
 
+			// Count
 			if (Count <= 0)
 				Count = Environment.ProcessorCount;
 
-			if (MaxLoad < int.MaxValue)
+			// MaxQueue after Count
+			if (MaxLoad < int.MaxValue / Count)
 				MaxQueue = Count * MaxLoad;
 
+			// to import modules
 			if (Module != null)
 				_iss.ImportPSModule(Module);
 
+			// import variables
 			if (Variable != null)
 			{
 				foreach (var name in Variable)
 					_iss.Variables.Add(new SessionStateVariableEntry(name, GetVariableValue(name), string.Empty));
 			}
 
+			// import functions
 			if (Function != null)
 			{
 				foreach (var name in Function)
@@ -149,6 +167,7 @@ namespace SplitPipeline.Commands
 				}
 			}
 
+			// verbose state
 			object parameter;
 			if (MyInvocation.BoundParameters.TryGetValue("Verbose", out parameter))
 				_verbose = ((SwitchParameter)parameter).ToBool();
@@ -159,19 +178,25 @@ namespace SplitPipeline.Commands
 		{
 			try
 			{
+				// add to the queue
 				Enqueue(InputObject);
 
-				if (_queue.Count < MinLoad)
+				// simple mode or too few items for a job?
+				if (Load == null || _queue.Count < MinLoad)
 					return;
 
+				// force feed while the queue is too large;
+				// NB: Feed with Refill may add new items
 				while (_queue.Count >= MaxQueue && !xStop)
 					Feed(true);
 
+				// try to feed available jobs normally
 				if (_queue.Count >= MinLoad && !xStop)
 					Feed(false);
 			}
 			catch
 			{
+				// ignore errors on stopping
 				if (!xStop)
 					throw;
 			}
@@ -180,18 +205,53 @@ namespace SplitPipeline.Commands
 		{
 			try
 			{
-				_isEnd = true;
-
+				// verbose info
 				if (_verbose)
 					WriteVerbose(string.Format(null, "Split-Pipeline: End, Queue = {0}", _queue.Count));
 
-				while (!xStop && (_queue.Count > 0 || _work.Count > 0))
+				// force feed while there are items or working jobs
+				// NB: jobs with Refill may add new items
+				while ((_queue.Count > 0 || _work.Count > 0))
+				{
+					if (xStop)
+						return;
 					Feed(true);
+				}
 
-				Close(_End);
+				// summary info
+				if (xStop)
+					return;
+				if (_verbose)
+					WriteVerbose(string.Format(null, @"Split-Pipeline:
+Item count = {0}
+Part count = {1}
+Pipe count = {2}
+Wait count = {3}
+Max queue  = {4}
+Total time = {5}
+Items /sec = {6}
+", _infoItemCount
+ , _infoPartCount
+ , _done.Count
+ , _infoWaitCount
+ , _infoMaxQueue
+ , _infoTimeTotal.Elapsed
+ , _infoItemCount / _infoTimeTotal.Elapsed.TotalSeconds));
+
+				// invoke the end script
+				if (_End != null)
+				{
+					foreach (var job in _done)
+					{
+						if (xStop)
+							return;
+						WriteResults(job, job.InvokeEnd(_End));
+					}
+				}
 			}
 			catch
 			{
+				// ignore errors on stopping
 				if (!xStop)
 					throw;
 			}
@@ -199,86 +259,21 @@ namespace SplitPipeline.Commands
 		protected override void StopProcessing()
 		{
 			xStop = true;
-			Close(null);
+			Close();
 		}
 		public void Dispose()
 		{
 			if (!_closed)
-				Close(null);
-		}
-		new void WriteDebug(string value)
-		{
-			//! may throw on stopping
-			try
-			{
-				base.WriteDebug(value);
-			}
-			catch
-			{
-				if (!xStop)
-					throw;
-			}
-		}
-		new void WriteError(ErrorRecord value)
-		{
-			//! may throw on stopping
-			try
-			{
-				base.WriteError(value);
-			}
-			catch
-			{
-				if (!xStop)
-					throw;
-			}
-		}
-		new void WriteObject(object value)
-		{
-			//! may throw on stopping
-			try
-			{
-				base.WriteObject(value);
-			}
-			catch
-			{
-				if (!xStop)
-					throw;
-			}
-		}
-		new void WriteVerbose(string value)
-		{
-			//! may throw on stopping
-			try
-			{
-				if (!xStop)
-					base.WriteVerbose(value);
-			}
-			catch
-			{
-				if (!xStop)
-					throw;
-			}
-		}
-		new void WriteWarning(string value)
-		{
-			//! may throw on stopping
-			try
-			{
-				base.WriteWarning(value);
-			}
-			catch
-			{
-				if (!xStop)
-					throw;
-			}
+				Close();
 		}
 
 		/// <summary>
-		/// Puts the object to the input queue unless it is filtered out.
-		/// Callers must check the maximum queue count.
+		/// Adds the object to the queue unless it is filtered out.
+		/// Callers check the maximum queue count.
 		/// </summary>
 		void Enqueue(PSObject value)
 		{
+			// filter
 			if (Filter != null)
 			{
 				if (_FilterHash != null)
@@ -295,22 +290,24 @@ namespace SplitPipeline.Commands
 				}
 			}
 
+			// enqueue
 			_queue.Enqueue(value);
 
+			// update info
 			++_infoItemCount;
 			if (_infoMaxQueue < _queue.Count)
 				_infoMaxQueue = _queue.Count;
 		}
 		/// <summary>
 		/// Gets the next part of input items and feeds them to a ready job.
-		/// If forced it waits for a ready job.
+		/// If forced waits for a ready job.
 		/// </summary>
 		void Feed(bool force)
 		{
-			// try to make more jobs ready and more input available in refill mode
+			// try to make more jobs ready and more input available on Refill
 			Take();
 
-			// no input? check this after taking, refill adds input on taking
+			// no input? check this after taking, Refill adds input on taking
 			if (_queue.Count == 0)
 				return;
 
@@ -332,15 +329,15 @@ namespace SplitPipeline.Commands
 				++load;
 
 			// check limits
-			if (load > MaxLoad)
-				load = MaxLoad;
-			else if (load < MinLoad)
+			if (load < MinLoad)
 				load = MinLoad;
+			else if (load > MaxLoad)
+				load = MaxLoad;
 
 			lock (_syncObject)
 			{
-				int nReadyJob = Count - _work.Count;
-				if (xStop || nReadyJob == 0)
+				int nReadyJobs = Count - _work.Count;
+				if (xStop || nReadyJobs == 0)
 					return;
 
 				do
@@ -350,8 +347,8 @@ namespace SplitPipeline.Commands
 					{
 						load = _queue.Count;
 
-						// if load is less than minimum then exit on normal processing
-						if (load < MinLoad && !_isEnd)
+						// if load is less than minimum and not forced then exit
+						if (load < MinLoad && !force)
 							return;
 					}
 
@@ -359,9 +356,10 @@ namespace SplitPipeline.Commands
 					LinkedListNode<Job> node = _done.First;
 					if (node == null)
 					{
-						node = new LinkedListNode<Job>(new Job(RunspaceFactory.CreateRunspace(_iss)));
+						var job = new Job(RunspaceFactory.CreateRunspace(_iss));
+						node = new LinkedListNode<Job>(job);
 						_work.AddLast(node);
-						Write(node.Value, node.Value.InvokeBegin(_Begin, _Script));
+						WriteResults(job, job.InvokeBegin(_Begin, _Script));
 					}
 					else
 					{
@@ -380,12 +378,12 @@ namespace SplitPipeline.Commands
 					++_infoPartCount;
 					node.Value.BeginInvoke(_queue, load);
 				}
-				while (!xStop && --nReadyJob > 0 && _queue.Count > 0);
+				while (!xStop && --nReadyJobs > 0 && _queue.Count > 0);
 			}
 		}
 		/// <summary>
 		/// Finds finished jobs, writes their output, moves them to done.
-		/// If ordered stops on the first found working job, it has to finish.
+		/// If Order stops on the first found working job, it should finish.
 		/// </summary>
 		void Take()
 		{
@@ -407,9 +405,9 @@ namespace SplitPipeline.Commands
 					var job = node.Value;
 					if (xStop)
 						return;
-					Write(job, job.EndInvoke());
+					WriteResults(job, job.EndInvoke());
 
-					// move node, step next
+					// move node to done, do next
 					var next = node.Next;
 					_work.Remove(node);
 					_done.AddLast(node);
@@ -418,7 +416,7 @@ namespace SplitPipeline.Commands
 			}
 		}
 		/// <summary>
-		/// Waits for any job to finish. If ordered then its the first job in the queue.
+		/// Waits for any job to finish. If Order then its the first job in the queue.
 		/// </summary>
 		void Wait()
 		{
@@ -432,7 +430,7 @@ namespace SplitPipeline.Commands
 				{
 					var node = _work.First;
 					var job = node.Value;
-					Write(job, job.EndInvoke());
+					WriteResults(job, job.EndInvoke());
 					_work.Remove(node);
 					_done.AddLast(node);
 					return;
@@ -442,14 +440,14 @@ namespace SplitPipeline.Commands
 					wait.Add(job.WaitHandle);
 			}
 
-			//! #3: here it used to hang
+			//! issue #3: used to hang
 			WaitHandle.WaitAny(wait.ToArray());
 		}
 		/// <summary>
 		/// Writes job output objects and propagates streams.
 		/// Moves refilling objects from output to the queue.
 		/// </summary>
-		void Write(Job job, ICollection<PSObject> output)
+		void WriteResults(Job job, ICollection<PSObject> output)
 		{
 			if (output != null && output.Count > 0)
 			{
@@ -461,20 +459,16 @@ namespace SplitPipeline.Commands
 						{
 							var reference = it.BaseObject as PSReference;
 							if (reference == null)
-							{
 								WriteObject(it);
-							}
 							else
-							{
-								++_infoItemCount;
 								Enqueue(new PSObject(reference.Value));
-							}
 						}
 					}
 				}
 				else
 				{
-					WriteObject(output, true);
+					foreach (var it in output)
+						WriteObject(it);
 				}
 			}
 
@@ -510,11 +504,10 @@ namespace SplitPipeline.Commands
 		}
 		/// <summary>
 		/// Moves all jobs to done then for each jobs:
-		/// -- calls the end script on ending;
-		/// -- calls the finally script always;
+		/// -- calls the finally script;
 		/// -- closes the job.
 		/// </summary>
-		void Close(string end)
+		void Close()
 		{
 			lock (_syncObject)
 			{
@@ -535,64 +528,39 @@ namespace SplitPipeline.Commands
 				if (_done.Count == 0)
 					return;
 
-				try
+				// invoke the finally script always, do not throw, closing is ahead
+				if (_Finally != null)
 				{
-					// summary
-					if (_isEnd && _verbose)
-						WriteVerbose(string.Format(null, @"Split-Pipeline:
-Item count = {0}
-Part count = {1}
-Pipe count = {2}
-Wait count = {3}
-Max queue  = {4}
-Total time = {5}
-Items /sec = {6}
-", _infoItemCount, _infoPartCount, _done.Count, _infoWaitCount, _infoMaxQueue, _infoTimeTotal.Elapsed, _infoItemCount / _infoTimeTotal.Elapsed.TotalSeconds));
-
-					// invoke the end script on ending, if any
-					if (!xStop && end != null)
-					{
-						foreach (var job in _done)
-							Write(job, job.InvokeEnd(end));
-					}
-				}
-				finally
-				{
-					// invoke the finally script always, do not throw, closing is ahead
-					if (_Finally != null)
-					{
-						// let them all to work
-						var exceptions = new List<Exception>();
-						foreach (var job in _done)
-						{
-							try
-							{
-								job.InvokeFinally(_Finally);
-							}
-							catch (Exception e)
-							{
-								exceptions.Add(e);
-							}
-						}
-
-						// then write errors as warnings
-						if (!xStop && exceptions.Count > 0)
-						{
-							try
-							{
-								foreach (var e in exceptions)
-									WriteWarning("Exception in Finally: " + e.Message);
-							}
-							catch (RuntimeException)
-							{ }
-						}
-					}
-
-					// close jobs
+					// let them all to work
+					var exceptions = new List<Exception>();
 					foreach (var job in _done)
-						job.Close();
-					_done.Clear();
+					{
+						try
+						{
+							job.InvokeFinally(_Finally);
+						}
+						catch (Exception e)
+						{
+							exceptions.Add(e);
+						}
+					}
+
+					// then write errors as warnings
+					if (exceptions.Count > 0 && !xStop)
+					{
+						try
+						{
+							foreach (var e in exceptions)
+								WriteWarning("Exception in Finally: " + e.Message);
+						}
+						catch (RuntimeException)
+						{ }
+					}
 				}
+
+				// close jobs
+				foreach (var job in _done)
+					job.Close();
 			}
 		}
 	}

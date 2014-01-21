@@ -46,6 +46,7 @@ task Issue3 {
 		}} `
 		-Begin {
 			$id = [runspace]::DefaultRunspace.InstanceId
+			1 > "C:\TEMP\SplitPipelineIssue3\Begin-$id"
 		} `
 		-End {
 			1 > "C:\TEMP\SplitPipelineIssue3\End-$id"
@@ -89,9 +90,11 @@ task Issue3 {
 
 	# logs
 	$logs = Get-Item "C:\TEMP\SplitPipelineIssue3\*"
-	assert ($logs.Count -eq 2)
-	assert ($logs[0].Name -like 'Finally-*-*-*-*-*')
-	assert ($logs[1].Name -like 'Finally-*-*-*-*-*')
+	assert ($logs.Count -eq 4)
+	assert ($logs[0].Name -like 'Begin-*-*-*-*-*')
+	assert ($logs[1].Name -like 'Begin-*-*-*-*-*')
+	assert ($logs[2].Name -like 'Finally-*-*-*-*-*')
+	assert ($logs[3].Name -like 'Finally-*-*-*-*-*')
 
 	# end
 	Remove-Item -LiteralPath "C:\TEMP\SplitPipelineIssue3" -Force -Recurse -ErrorAction 0

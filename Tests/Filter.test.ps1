@@ -10,6 +10,13 @@
 Import-Module SplitPipeline
 Set-StrictMode -Version Latest
 
+task Error {
+	$$ = try { 1..9 | Split-Pipeline {} -Filter 42 } catch { $_ }
+	assert ("$$" -clike @'
+*Exception setting "Filter": "Expected a hashtable or a script block."
+'@)
+}
+
 task FilterInputUniqueByScript {
 	$hash = @{}
 	1,1,2,2,3,3,4,4,5,5 | Split-Pipeline -OutVariable OutVariable {$input} -Filter {
