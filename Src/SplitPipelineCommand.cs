@@ -359,7 +359,7 @@ Items /sec = {6}
 					LinkedListNode<Job> node = _done.First;
 					if (node == null)
 					{
-						var job = new Job(RunspaceFactory.CreateRunspace(_iss));
+						var job = new Job(RunspaceFactory.CreateRunspace(Host, _iss));
 						node = new LinkedListNode<Job>(job);
 						_work.AddLast(node);
 						WriteResults(job, job.InvokeBegin(_Begin, _Script));

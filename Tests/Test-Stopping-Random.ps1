@@ -35,7 +35,7 @@ public static class SplitPipelineLog {
 $test = {
 	Import-Module SplitPipeline
 	$VerbosePreference = 2
-	$lastId = @{Value = -1}
+	$lastId = [ref]-1
 
 	$param = @{
 		Variable = 'lastId'

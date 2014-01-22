@@ -1,6 +1,12 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.4.2
+
+Pipeline runspaces are created with the host used by `Split-Pipeline`. As a
+result, some host features can be used by pipeline scripts, e.g. `Write-Host`
+and even `Write-Progress`, see `Test-Progress*.ps1` in the project repository.
+
 ## v1.4.1
 
 If the minimum `Load` is less than 1 then the parameter is treated as omitted.
