@@ -106,8 +106,9 @@ processing. It may work without collecting the whole input, large or infinite.
 	$description = @"
 $summary
 
-To install SplitPipeline, follow Quick Start steps:
+---
 
+To install SplitPipeline, follow Quick Start steps:
 https://github.com/nightroman/SplitPipeline
 
 ---

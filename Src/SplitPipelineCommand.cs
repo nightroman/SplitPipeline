@@ -68,8 +68,11 @@ namespace SplitPipeline
 			get { return _Load; }
 			set
 			{
-				if (value[0] < 1 || (value.Length == 2 && value[0] > value[1]))
-					throw new PSArgumentException("Invalid load values.");
+				if (value[0] < 1)
+					return;
+
+				if (value.Length == 2 && value[0] > value[1])
+					throw new PSArgumentException("Load maximum must be greater or equal to minimum.");
 
 				_Load = value;
 				MinLoad = value[0];

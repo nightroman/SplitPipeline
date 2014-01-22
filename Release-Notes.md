@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.4.1
+
+If the minimum `Load` is less than 1 then the parameter is treated as omitted.
+
 ## v1.4.0
 
 *Potentially incompatible change*. By default, i.e. when `Load` is omitted, the

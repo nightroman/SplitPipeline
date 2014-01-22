@@ -105,8 +105,8 @@ Import-Module SplitPipeline
 		split evenly between pipelines.
 
 		The parameter accepts an array of one or two integers. The first is the
-		minimum number of objects per pipeline. The second is the maximum, not
-		limited if omitted.
+		minimum number of objects per pipeline. If it is less than 1 then Load
+		is treated as omitted. The second number is the optional maximum.
 
 		If processing is fast then it is important to specify a proper minimum.
 		Otherwise Split-Pipeline may work even slower than a standard pipeline.

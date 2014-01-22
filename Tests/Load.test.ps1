@@ -12,10 +12,13 @@ Set-StrictMode -Version Latest
 
 task Error {
 	# 0 args
-	$$ = try { 1..9 | Split-Pipeline {} -Load @() } catch { $_ }
-	assert ("$$" -clike @'
+	$e = @'
 Cannot validate argument on parameter 'Load'. *Specify more than 1 arguments and then try the command again.
-'@)
+'@
+	$$ = try { 1..9 | Split-Pipeline {} -Load @() } catch { $_ }
+	assert ("$$" -clike $e)
+	$$ = try { 1..9 | Split-Pipeline {} -Load $null } catch { $_ }
+	assert ("$$" -clike $e)
 
 	# 3+ args
 	$$ = try { 1..9 | Split-Pipeline {} -Load 1,2,3 } catch { $_ }
@@ -23,16 +26,17 @@ Cannot validate argument on parameter 'Load'. *Specify more than 1 arguments and
 Cannot validate argument on parameter 'Load'. *exceeds the maximum number of allowed arguments (2)*
 '@)
 
-	$e = @'
-Cannot bind parameter 'Load' to the target. Exception setting "Load": "Invalid load values."
-'@
-	# [0]<1
-	$$ = try { 1..9 | Split-Pipeline {} -Load 0 } catch { $_ }
-	assert ("$$" -ceq $e)
-
 	# [0] > [1]
 	$$ = try { 1..9 | Split-Pipeline {} -Load 1,0 } catch { $_ }
-	assert ("$$" -ceq $e)
+	assert ("$$" -ceq @'
+Cannot bind parameter 'Load' to the target. Exception setting "Load": "Load maximum must be greater or equal to minimum."
+'@)
+
+	# [0]<1 is fine and treated as omitted, [1] is ignored
+	$r = 1..9 | Split-Pipeline {@($input).Count} -Load 0,-1 -Count 2
+	assert ($r.Count -eq 2)
+	assert ($r[0] -eq 5)
+	assert ($r[1] -eq 4)
 }
 
 # v1.4.0 By default the whole input is collected and split evenly
