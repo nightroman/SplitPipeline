@@ -35,28 +35,28 @@ task BeginProcessEnd {
 	$DebugPreference = 'Continue'
 	$result = 1..4 | Split-Pipeline -Count 2 -Load 1 -Verbose `
 	-Begin {
-		$VerbosePreference = 'Continue'
 		$DebugPreference = 'Continue'
+		$VerbosePreference = 'Continue'
 		'begin split'
-		Write-Warning 'Warning in begin split'
-		Write-Verbose 'Verbose in begin split'
 		Write-Debug 'Debug in begin split'
 		Write-Error 'Error in begin split'
+		Write-Verbose 'Verbose in begin split'
+		Write-Warning 'Warning in begin split'
 	} `
 	-End {
 		'end split'
-		Write-Warning 'Warning in end split'
-		Write-Verbose 'Verbose in end split'
 		Write-Debug 'Debug in end split'
 		Write-Error 'Error in end split'
+		Write-Verbose 'Verbose in end split'
+		Write-Warning 'Warning in end split'
 	} `
 	-Script {
 		begin {
 			'begin part'
-			Write-Warning 'Warning in script'
-			Write-Verbose 'Verbose in script'
 			Write-Debug 'Debug in script'
 			Write-Error 'Error in script'
+			Write-Verbose 'Verbose in script'
+			Write-Warning 'Warning in script'
 		}
 		process {
 			$_

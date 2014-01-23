@@ -71,7 +71,10 @@ for($n = 1; $n -le $Repeat; ++$n) {
 	[SplitPipelineLog]::Finally.Clear()
 
 	# start Split-Pipeline
+	$rs = [runspacefactory]::CreateRunspace($Host)
+	$rs.Open()
 	$ps = [PowerShell]::Create()
+	$ps.Runspace = $rs
 	$null = $ps.AddScript($test)
 	$a1 = $ps.BeginInvoke()
 

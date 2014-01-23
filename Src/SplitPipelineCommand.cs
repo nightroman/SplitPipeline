@@ -359,6 +359,7 @@ Items /sec = {6}
 					LinkedListNode<Job> node = _done.First;
 					if (node == null)
 					{
+						// v1.4.2 Runspaces use the same host as the cmdlet.
 						var job = new Job(RunspaceFactory.CreateRunspace(Host, _iss));
 						node = new LinkedListNode<Job>(job);
 						_work.AddLast(node);
@@ -450,8 +451,12 @@ Items /sec = {6}
 		/// Writes job output objects and propagates streams.
 		/// Moves refilling objects from output to the queue.
 		/// </summary>
+		/// <remarks>
+		/// v1.4.2 Only errors are propagated, other streams are written to the host.
+		/// </remarks>
 		void WriteResults(Job job, ICollection<PSObject> output)
 		{
+			// process output
 			if (output != null && output.Count > 0)
 			{
 				if (Refill)
@@ -475,35 +480,20 @@ Items /sec = {6}
 				}
 			}
 
+			// process streams
 			var streams = job.Streams;
 
-			if (streams.Debug.Count > 0)
-			{
-				foreach (var record in streams.Debug)
-					WriteDebug(record.Message);
-				streams.Debug.Clear();
-			}
-
-			if (streams.Verbose.Count > 0)
-			{
-				foreach (var record in streams.Verbose)
-					WriteVerbose(record.Message);
-				streams.Verbose.Clear();
-			}
-
-			if (streams.Warning.Count > 0)
-			{
-				foreach (var record in streams.Warning)
-					WriteWarning(record.Message);
-				streams.Warning.Clear();
-			}
-
+			// v1.4.2 Even with the shared host errors must be propagated explicitly.
 			if (streams.Error.Count > 0)
 			{
 				foreach (var record in streams.Error)
 					WriteError(record);
-				streams.Error.Clear();
 			}
+
+			// v1.4.2 Debug, progress, verbose, and warning messages are written to the host.
+			// But streams are still populated, so we clear them on writing results.
+			// NB: It is possible to log these streams in addition.
+			streams.ClearStreams();
 		}
 		/// <summary>
 		/// Moves all jobs to done then for each jobs:

@@ -1,6 +1,10 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.4.3
+
+Fixed duplicated debug, warning, and verbose messages (v1.4.2).
+
 ## v1.4.2
 
 Pipeline runspaces are created with the host used by `Split-Pipeline`. As a

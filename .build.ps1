@@ -66,8 +66,9 @@ task TestHelp Help, {
 	Test-Helps Module\en-US\SplitPipeline.dll-Help.ps1
 }
 
-# Tests.
+# Tests v2 and v3.
 task Test {
+	exec { PowerShell.exe -Version 2 Invoke-Build ** Tests }
 	Invoke-Build ** Tests
 }
 
