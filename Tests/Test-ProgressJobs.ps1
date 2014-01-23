@@ -7,7 +7,7 @@
 	The Begin script assigns $id to each job using the shared counter $lastId.
 	$lastId does not have to be synchronised because Begin is invoked for each
 	job on its creation synchronously. As far as Begin is invoked in a separate
-	runspace, the counter has to be passed in it using the parameter Variable.
+	runspace, the counter has to be passed in via Variable.
 
 	Then each job uses its $id as activity ID for Write-Progress so that each
 	job progress is visualized separately.
