@@ -50,7 +50,24 @@ namespace SplitPipeline
 		public string[] Module { get; set; }
 
 		[Parameter]
-		public int Count { get; set; }
+		[ValidateCount(1, 2)]
+		public int[] Count
+		{
+			get { return null; }
+			set
+			{
+				if (value[0] < 1)
+					return;
+				
+				if (value.Length == 1)
+					_Count = value[0];
+				else if (value[0] > value[1])
+					throw new PSArgumentException("Count maximum must be greater or equal to minimum.");
+				else
+					_Count = Math.Max(value[0], Math.Min(value[1], Environment.ProcessorCount));
+			}
+		}
+		int _Count;
 
 		[Parameter]
 		public SwitchParameter Order { get; set; }
@@ -142,18 +159,20 @@ namespace SplitPipeline
 				_Finally = Finally.ToString();
 
 			// Count
-			if (Count <= 0)
-				Count = Environment.ProcessorCount;
+			if (_Count <= 0)
+				_Count = Environment.ProcessorCount;
 
 			// MaxQueue after Count
-			if (MaxLoad < int.MaxValue / Count)
-				MaxQueue = Count * MaxLoad;
+			if (MaxLoad < int.MaxValue / _Count)
+				MaxQueue = _Count * MaxLoad;
 
 			// to import modules
 			if (Module != null)
 				_iss.ImportPSModule(Module);
 
 			// import variables
+			_iss.Variables.Add(new SessionStateVariableEntry("LogEngineLifeCycleEvent", false, string.Empty)); // whole log disabled
+			_iss.Variables.Add(new SessionStateVariableEntry("LogProviderLifeCycleEvent", false, string.Empty)); // start is still logged
 			if (Variable != null)
 			{
 				foreach (var name in Variable)
@@ -315,7 +334,7 @@ Items /sec = {6}
 				return;
 
 			// all busy?
-			if (Count - _work.Count == 0)
+			if (_Count - _work.Count == 0)
 			{
 				// no ready jobs, done if not forced
 				if (!force)
@@ -327,8 +346,8 @@ Items /sec = {6}
 			}
 
 			// split the queue equally between all potential jobs
-			int load = _queue.Count / Count;
-			if (load * Count < _queue.Count)
+			int load = _queue.Count / _Count;
+			if (load * _Count < _queue.Count)
 				++load;
 
 			// check limits
@@ -339,7 +358,7 @@ Items /sec = {6}
 
 			lock (_syncObject)
 			{
-				int nReadyJobs = Count - _work.Count;
+				int nReadyJobs = _Count - _work.Count;
 				if (xStop || nReadyJobs == 0)
 					return;
 
@@ -374,13 +393,13 @@ Items /sec = {6}
 					if (xStop)
 						return;
 
-					// feed info
-					if (_verbose)
-						WriteVerbose(string.Format(null, "Split-Pipeline: Jobs = {0}; Load = {1}; Queue = {2}", _work.Count, load, _queue.Count));
-
 					// feed the job
 					++_infoPartCount;
 					node.Value.BeginInvoke(_queue, load);
+
+					// show feed info
+					if (_verbose)
+						WriteVerbose(string.Format(null, "Split-Pipeline: Jobs = {0}; Load = {1}; Queue = {2}", _work.Count, load, _queue.Count));
 				}
 				while (!xStop && --nReadyJobs > 0 && _queue.Count > 0);
 			}
@@ -424,7 +443,7 @@ Items /sec = {6}
 		/// </summary>
 		void Wait()
 		{
-			var wait = new List<WaitHandle>(Count);
+			var wait = new List<WaitHandle>(_Count);
 
 			lock (_syncObject)
 			{

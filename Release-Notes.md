@@ -1,6 +1,16 @@
 SplitPipeline Release Notes
 ===========================
 
+## v1.5.0
+
+`Count` accepts one or two values. One is as usual. Two values limit the number
+of required pipelines also taking into account the number of processors. (Too
+many pipelines on machines with many cores is not always optimal.)
+
+Corrected the test/demo script *Test-ProgressTotal.ps1*.
+
+Minor performance tweaks on creation of runspaces.
+
 ## v1.4.3
 
 Fixed duplicated debug, warning, and verbose messages (v1.4.2).

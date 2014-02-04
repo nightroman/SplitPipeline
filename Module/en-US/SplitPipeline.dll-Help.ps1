@@ -93,11 +93,16 @@ Import-Module SplitPipeline
 		tells to add an object to the input queue.
 '@
 		Count = @'
-		Maximum number of created parallel pipelines. The default value is the
-		number or processors. Use the default or even decrease it for intensive
-		jobs, especially if there are other tasks working at the same time, for
-		example, output is processed simultaneously. But for jobs not consuming
-		much processor resources increasing the number may improve performance.
+		Specifies the parallel pipeline count. The default value is the number
+		or processors. For intensive jobs use the default or decreased value,
+		especially if there are other tasks working at the same time. But for
+		jobs not consuming much processor resources increasing the number may
+		improve performance.
+
+		The parameter accepts an array of one or two integers. A single value
+		specifies the recommended number of pipelines. Two arguments specify
+		the minimum and maximum numbers and the recommended value is set to
+		Max(Count[0], Min(Count[1], ProcessorCount)).
 '@
 		Load = @'
 		Enables processing of partially collected input and specifies input

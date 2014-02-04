@@ -70,7 +70,7 @@ task Min2MaxX {
 
 # `-Load 4,4` sets the part size to 4
 task Min4Max4 {
-	$r = 1..11 | Split-Pipeline -Count 2 {@($input).Count} -Load 4,4
+	$r = 1..11 | Split-Pipeline -Count 2 {@($input).Count} -Load 4,4 -Order
 	$r
 	assert ($r.Count -eq 3)
 	assert ($r[0] -eq 4)

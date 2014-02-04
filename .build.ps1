@@ -109,8 +109,8 @@ $summary
 
 ---
 
-To install SplitPipeline, follow Quick Start steps:
-https://github.com/nightroman/SplitPipeline
+To install SplitPipeline, follow the Quick Start steps:
+https://github.com/nightroman/SplitPipeline#quick-start
 
 ---
 "@
