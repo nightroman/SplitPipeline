@@ -2,7 +2,7 @@
 *.suo
 *.user
 *.zip
-[B|b]in
-[D|d]ebug
-[O|o]bj
-[R|r]elease
+AssemblyInfo.cs
+bin
+obj
+SplitPipeline.psd1

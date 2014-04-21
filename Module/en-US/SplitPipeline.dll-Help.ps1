@@ -14,9 +14,9 @@ Import-Module SplitPipeline
 	Splits pipeline input and processes its parts by parallel pipelines.
 '@
 	description = @'
-    The cmdlet splits the input, processes its parts by parallel pipelines, and
-    outputs the results for further processing. It may work without collecting
-    the whole input, large or infinite.
+	The cmdlet splits the input, processes its parts by parallel pipelines, and
+	outputs the results for further processing. It may work without collecting
+	the whole input, large or infinite.
 
 	When Load is omitted the whole input is collected and split evenly between
 	Count parallel pipelines. This method shows the best performance in simple
@@ -225,19 +225,19 @@ Import-Module SplitPipeline
 	scripts. Such items should be specified by Variable, Function, and Module
 	parameters in order to be available.
 
-    > $arr = @('one', 'two', 'three'); 0..2 | . {process{ $arr[$_] }}
-    one
-    two
-    three
+	> $arr = @('one', 'two', 'three'); 0..2 | . {process{ $arr[$_] }}
+	one
+	two
+	three
 
-    > $arr = @('one', 'two', 'three'); 0..2 | Split-Pipeline {process{ $arr[$_] }}
-    Split-Pipeline : Cannot index into a null array.
-    ...
+	> $arr = @('one', 'two', 'three'); 0..2 | Split-Pipeline {process{ $arr[$_] }}
+	Split-Pipeline : Cannot index into a null array.
+	...
 
-    > $arr = @('one', 'two', 'three'); 0..2 | Split-Pipeline -Variable arr {process{ $arr[$_] }}
-    one
-    two
-    three
+	> $arr = @('one', 'two', 'three'); 0..2 | Split-Pipeline -Variable arr {process{ $arr[$_] }}
+	one
+	two
+	three
 '@
 		}
 	)

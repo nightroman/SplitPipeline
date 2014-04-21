@@ -4,20 +4,16 @@
 	Build script (https://github.com/nightroman/Invoke-Build)
 
 .Description
-	How to use this script and build the module:
+	HOW TO USE THIS SCRIPT AND BUILD THE MODULE
 
 	Get the utility script Invoke-Build.ps1:
 	https://github.com/nightroman/Invoke-Build
 
-	Copy it to the path. Set location to this directory. Build:
+	Copy it to the path. Set location to here. Build:
 	PS> Invoke-Build Build
 
-	This command builds the module and installs it to the $ModuleRoot which is
-	the working location of the module. The build fails if the module is
-	currently in use. Ensure it is not and then repeat.
-
-	The build task Help fails if the help builder Helps is not installed.
-	Ignore this or better get and use the script (it is really easy):
+	The task Help fails if Helps.ps1 is missing.
+	Ignore this error or get Helps.ps1:
 	https://github.com/nightroman/Helps
 #>
 
@@ -25,76 +21,124 @@ param(
 	$Configuration = 'Release'
 )
 
-# Standard location of the SplitPipeline module (caveat: may not work if MyDocuments is not standard)
-$ModuleRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) WindowsPowerShell\Modules\SplitPipeline
+$ModuleName = 'SplitPipeline'
+
+# Module directory.
+$ModuleRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) WindowsPowerShell\Modules\$ModuleName
 
 # Use MSBuild.
 use 4.0 MSBuild
 
-# Import markdown tasks ConvertMarkdown and RemoveMarkdownHtml.
-# https://github.com/nightroman/Invoke-Build/wiki/Partial-Incremental-Tasks
-try { Markdown.tasks.ps1 }
-catch { task ConvertMarkdown; task RemoveMarkdownHtml }
-
-# Build all.
-task Build {
-	exec { MSBuild Src\SplitPipeline.csproj /t:Build /p:Configuration=$Configuration /p:TargetFrameworkVersion=v2.0 }
+# Get version from release notes.
+function Get-Version {
+	assert ([System.IO.File]::ReadAllText('Release-Notes.md') -match '##\s+v(\d+\.\d+\.\d+)')
+	$Matches[1]
 }
 
-# Clean all.
-task Clean RemoveMarkdownHtml, {
-	Remove-Item z, Src\bin, Src\obj, Module\SplitPipeline.dll, *.nupkg -Force -Recurse -ErrorAction 0
+# Generate or update meta files.
+task Meta -Inputs Release-Notes.md -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
+	$Version = Get-Version
+	$Project = 'https://github.com/nightroman/SplitPipeline'
+	$Summary = 'SplitPipeline - Parallel Data Processing in PowerShell'
+	$Copyright = 'Copyright (c) 2011-2014 Roman Kuzmin'
+
+	Set-Content Module\$ModuleName.psd1 @"
+@{
+	Author = 'Roman Kuzmin'
+	ModuleVersion = '$Version'
+	Description = '$Summary'
+	CompanyName = '$Project'
+	Copyright = '$Copyright'
+
+	ModuleToProcess = '$ModuleName.dll'
+
+	PowerShellVersion = '2.0'
+	GUID = '7806b9d6-cb68-4e21-872a-aeec7174a087'
+}
+"@
+
+	Set-Content Src\AssemblyInfo.cs @"
+using System;
+using System.Reflection;
+using System.Runtime.InteropServices;
+
+[assembly: AssemblyProduct("$ModuleName")]
+[assembly: AssemblyVersion("$Version")]
+[assembly: AssemblyTitle("$Summary")]
+[assembly: AssemblyCompany("$Project")]
+[assembly: AssemblyCopyright("$Copyright")]
+
+[assembly: ComVisible(false)]
+[assembly: CLSCompliant(false)]
+"@
 }
 
-# Copy all to the module root directory and then build help.
-# It is called as the post-build event of SplitPipeline.csproj.
+# Build, on post-build event copy files and make help.
+task Build Meta, {
+	exec { MSBuild Src\$ModuleName.csproj /t:Build /p:Configuration=$Configuration /p:TargetFrameworkVersion=v2.0 }
+}
+
+# Copy files to the module, then make help.
+# It is called from the post-build event.
 task PostBuild {
-	Copy-Item Src\Bin\$Configuration\SplitPipeline.dll Module
 	exec { robocopy Module $ModuleRoot /s /np /r:0 /xf *-Help.ps1 } (0..3)
+	Copy-Item Src\Bin\$Configuration\$ModuleName.dll $ModuleRoot
 },
-@{Help=1}
+(job Help -Safe)
 
-# Build module help by Helps (https://github.com/nightroman/Helps).
-task Help -Inputs (Get-Item Src\*.cs, Module\en-US\SplitPipeline.dll-Help.ps1) -Outputs "$ModuleRoot\en-US\SplitPipeline.dll-Help.xml" {
+# Remove temp and info files.
+task Clean {
+	Remove-Item -Force -Recurse -ErrorAction 0 `
+	Module\$ModuleName.psd1, "$ModuleName.*.nupkg",
+	z, Src\bin, Src\obj, Src\AssemblyInfo.cs, README.htm, Release-Notes.htm
+}
+
+# Build help by Helps (https://github.com/nightroman/Helps).
+task Help -Inputs (
+	Get-Item Src\*.cs, Module\en-US\$ModuleName.dll-Help.ps1
+) -Outputs (
+	"$ModuleRoot\en-US\$ModuleName.dll-Help.xml"
+) {
 	. Helps.ps1
-	Convert-Helps Module\en-US\SplitPipeline.dll-Help.ps1 $Outputs
+	Convert-Helps Module\en-US\$ModuleName.dll-Help.ps1 $Outputs
 }
 
 # Build and test help.
 task TestHelp Help, {
 	. Helps.ps1
-	Test-Helps Module\en-US\SplitPipeline.dll-Help.ps1
+	Test-Helps Module\en-US\$ModuleName.dll-Help.ps1
 }
 
-# Tests v2 and v3.
-task Test {
-	exec { PowerShell.exe -Version 2 Invoke-Build ** Tests }
-	Invoke-Build ** Tests
+# Docs by https://www.nuget.org/packages/MarkdownToHtml
+task ConvertMarkdown {
+	exec { MarkdownToHtml from=README.md to=README.htm }
+	exec { MarkdownToHtml from=Release-Notes.md to=Release-Notes.htm }
 }
 
-# Make the package in z\tools NuGet.
+# Set $script:Version.
+task Version {
+	($script:Version = Get-Version)
+	# module version
+	assert ((Get-Module $ModuleName -ListAvailable).Version -eq ([Version]$script:Version))
+	# assembly version
+	assert ((Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.FileVersion -eq ([Version]"$script:Version.0"))
+}
+
+# Make the package in z\tools.
 task Package ConvertMarkdown, {
 	Remove-Item [z] -Force -Recurse
-	$null = mkdir z\tools\SplitPipeline\en-US
+	$null = mkdir z\tools\$ModuleName\en-US
 
-	Copy-Item -Destination z\tools\SplitPipeline `
+	Copy-Item -Destination z\tools\$ModuleName `
 	LICENSE.txt,
-	$ModuleRoot\SplitPipeline.dll,
-	$ModuleRoot\SplitPipeline.psd1
-
-	Copy-Item -Destination z\tools\SplitPipeline\en-US `
-	$ModuleRoot\en-US\about_SplitPipeline.help.txt,
-	$ModuleRoot\en-US\SplitPipeline.dll-Help.xml
-
-	Move-Item -Destination z\tools\SplitPipeline `
 	README.htm,
-	Release-Notes.htm
-}
+	Release-Notes.htm,
+	$ModuleRoot\$ModuleName.dll,
+	$ModuleRoot\$ModuleName.psd1
 
-# Set $script:Version
-task Version {
-	assert ((Get-Item $ModuleRoot\SplitPipeline.dll).VersionInfo.FileVersion -match '^(\d+\.\d+\.\d+)')
-	($script:Version = $matches[1])
+	Copy-Item -Destination z\tools\$ModuleName\en-US `
+	$ModuleRoot\en-US\about_$ModuleName.help.txt,
+	$ModuleRoot\en-US\$ModuleName.dll-Help.xml
 }
 
 # Make NuGet package.
@@ -119,7 +163,7 @@ https://github.com/nightroman/SplitPipeline#quick-start
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 	<metadata>
-		<id>SplitPipeline</id>
+		<id>$ModuleName</id>
 		<version>$Version</version>
 		<owners>Roman Kuzmin</owners>
 		<authors>Roman Kuzmin</authors>
@@ -149,9 +193,15 @@ task PushRelease Version, {
 
 # Make and push the NuGet package.
 task PushNuGet NuGet, {
-	exec { NuGet push "SplitPipeline.$Version.nupkg" }
+	exec { NuGet push "$ModuleName.$Version.nupkg" }
 },
 Clean
+
+# Tests v2 and v3.
+task Test {
+	exec { PowerShell.exe -Version 2 Invoke-Build ** Tests }
+	Invoke-Build ** Tests
+}
 
 # Build, test and clean all.
 task . Build, Test, TestHelp, Clean
