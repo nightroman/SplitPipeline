@@ -31,11 +31,10 @@ use 4.0 MSBuild
 
 # Get version from release notes.
 function Get-Version {
-	assert ([System.IO.File]::ReadAllText('Release-Notes.md') -match '##\s+v(\d+\.\d+\.\d+)')
-	$Matches[1]
+	switch -Regex -File Release-Notes.md {'##\s+v(\d+\.\d+\.\d+)' {return $Matches[1]} }
 }
 
-# Generate or update meta files.
+# Synopsis: Generate or update meta files.
 task Meta -Inputs Release-Notes.md -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
 	$Version = Get-Version
 	$Project = 'https://github.com/nightroman/SplitPipeline'
@@ -73,12 +72,12 @@ using System.Runtime.InteropServices;
 "@
 }
 
-# Build, on post-build event copy files and make help.
+# Synopsis: Build, on post-build event copy files and make help.
 task Build Meta, {
 	exec { MSBuild Src\$ModuleName.csproj /t:Build /p:Configuration=$Configuration /p:TargetFrameworkVersion=v2.0 }
 }
 
-# Copy files to the module, then make help.
+# Synopsis: Copy files to the module, then make help.
 # It is called from the post-build event.
 task PostBuild {
 	exec { robocopy Module $ModuleRoot /s /np /r:0 /xf *-Help.ps1 } (0..3)
@@ -86,14 +85,14 @@ task PostBuild {
 },
 (job Help -Safe)
 
-# Remove temp and info files.
+# Synopsis: Remove temp and info files.
 task Clean {
 	Remove-Item -Force -Recurse -ErrorAction 0 `
 	Module\$ModuleName.psd1, "$ModuleName.*.nupkg",
 	z, Src\bin, Src\obj, Src\AssemblyInfo.cs, README.htm, Release-Notes.htm
 }
 
-# Build help by Helps (https://github.com/nightroman/Helps).
+# Synopsis: Build help by Helps (https://github.com/nightroman/Helps).
 task Help -Inputs (
 	Get-Item Src\*.cs, Module\en-US\$ModuleName.dll-Help.ps1
 ) -Outputs (
@@ -103,19 +102,19 @@ task Help -Inputs (
 	Convert-Helps Module\en-US\$ModuleName.dll-Help.ps1 $Outputs
 }
 
-# Build and test help.
+# Synopsis: Build and test help.
 task TestHelp Help, {
 	. Helps.ps1
 	Test-Helps Module\en-US\$ModuleName.dll-Help.ps1
 }
 
-# Docs by https://www.nuget.org/packages/MarkdownToHtml
+# Synopsis: Docs by https://www.nuget.org/packages/MarkdownToHtml
 task ConvertMarkdown {
 	exec { MarkdownToHtml from=README.md to=README.htm }
 	exec { MarkdownToHtml from=Release-Notes.md to=Release-Notes.htm }
 }
 
-# Set $script:Version.
+# Synopsis: Set $script:Version.
 task Version {
 	($script:Version = Get-Version)
 	# module version
@@ -124,7 +123,7 @@ task Version {
 	assert ((Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.FileVersion -eq ([Version]"$script:Version.0"))
 }
 
-# Make the package in z\tools.
+# Synopsis: Make the package in z\tools.
 task Package ConvertMarkdown, {
 	Remove-Item [z] -Force -Recurse
 	$null = mkdir z\tools\$ModuleName\en-US
@@ -141,7 +140,7 @@ task Package ConvertMarkdown, {
 	$ModuleRoot\en-US\$ModuleName.dll-Help.xml
 }
 
-# Make NuGet package.
+# Synopsis: Make NuGet package.
 task NuGet Package, Version, {
 	$summary = @'
 PowerShell module for parallel data processing. Split-Pipeline splits the
@@ -181,7 +180,7 @@ https://github.com/nightroman/SplitPipeline#quick-start
 	exec { NuGet pack z\Package.nuspec -NoPackageAnalysis }
 }
 
-# Push to the repository with a version tag.
+# Synopsis: Push to the repository with a version tag.
 task PushRelease Version, {
 	$changes = exec { git status --short }
 	assert (!$changes) "Please, commit changes."
@@ -191,17 +190,17 @@ task PushRelease Version, {
 	exec { git push origin "v$Version" }
 }
 
-# Make and push the NuGet package.
+# Synopsis: Make and push the NuGet package.
 task PushNuGet NuGet, {
 	exec { NuGet push "$ModuleName.$Version.nupkg" }
 },
 Clean
 
-# Tests v2 and v3.
+# Synopsis: Test v2 and v3.
 task Test {
 	exec { PowerShell.exe -Version 2 Invoke-Build ** Tests }
 	Invoke-Build ** Tests
 }
 
-# Build, test and clean all.
+# Synopsis: Build, test and clean all.
 task . Build, Test, TestHelp, Clean
