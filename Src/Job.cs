@@ -1,6 +1,6 @@
 ﻿
 /*
-Copyright (c) 2011-2014 Roman Kuzmin
+Copyright (c) 2011-2015 Roman Kuzmin
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ namespace SplitPipeline
 			if (_posh.InvocationStateInfo.State == PSInvocationState.Running)
 				_posh.Stop();
 
-			// invoke 
+			// invoke
 			_posh.Commands.Clear();
 			_posh.AddScript(script, false);
 			_posh.Invoke();

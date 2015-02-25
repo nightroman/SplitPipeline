@@ -1,6 +1,6 @@
 
 /*
-Copyright (c) 2011-2014 Roman Kuzmin
+Copyright (c) 2011-2015 Roman Kuzmin
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ namespace SplitPipeline
 			{
 				if (value[0] < 1)
 					return;
-				
+
 				if (value.Length == 1)
 					_Count = value[0];
 				else if (value[0] > value[1])
