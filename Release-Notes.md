@@ -1,5 +1,9 @@
-SplitPipeline Release Notes
-===========================
+
+# SplitPipeline Release Notes
+
+## v1.5.1
+
+Fixed #10 Tight loop in `EndProcessing()`
 
 ## v1.5.0
 

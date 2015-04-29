@@ -227,16 +227,21 @@ namespace SplitPipeline
 		{
 			try
 			{
-				// verbose info
-				if (_verbose)
-					WriteVerbose(string.Format(null, "Split-Pipeline: End, Queue = {0}", _queue.Count));
-
 				// force feed while there are items or working jobs
 				// NB: jobs with Refill may add new items
-				while ((_queue.Count > 0 || _work.Count > 0))
+				while (_queue.Count > 0 || _work.Count > 0)
 				{
 					if (xStop)
 						return;
+
+					// verbose info
+					if (_verbose)
+						WriteVerbose(string.Format(null, "Split-Pipeline: Jobs = {0}; Load = End; Queue = {1}", _work.Count, _queue.Count));
+
+					// #10 nothing to feed, wait
+					if (_queue.Count == 0)
+						Wait();
+
 					Feed(true);
 				}
 
