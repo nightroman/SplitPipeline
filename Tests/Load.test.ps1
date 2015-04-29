@@ -12,25 +12,20 @@ Set-StrictMode -Version Latest
 
 task Error {
 	# 0 args
-	$e = @'
-Cannot validate argument on parameter 'Load'. *Specify more than 1 arguments and then try the command again.
-'@
-	$$ = try { 1..9 | Split-Pipeline {} -Load @() } catch { $_ }
-	assert ("$$" -clike $e)
-	$$ = try { 1..9 | Split-Pipeline {} -Load $null } catch { $_ }
-	assert ("$$" -clike $e)
+	($$ = try {1..9 | Split-Pipeline {} -Load @()} catch {$_})
+	assert ($$.FullyQualifiedErrorId -eq 'ParameterArgumentValidationError,SplitPipeline.SplitPipelineCommand')
+
+	# null
+	($$ = try {1..9 | Split-Pipeline {} -Load $null} catch {$_})
+	assert ($$.FullyQualifiedErrorId -eq 'ParameterArgumentValidationError,SplitPipeline.SplitPipelineCommand')
 
 	# 3+ args
-	$$ = try { 1..9 | Split-Pipeline {} -Load 1,2,3 } catch { $_ }
-	assert ("$$" -clike @'
-Cannot validate argument on parameter 'Load'. *exceeds the maximum number of allowed arguments (2)*
-'@)
+	($$ = try {1..9 | Split-Pipeline {} -Load 1,2,3} catch {$_})
+	assert ($$.FullyQualifiedErrorId -eq 'ParameterArgumentValidationError,SplitPipeline.SplitPipelineCommand')
 
 	# [0] > [1]
-	$$ = try { 1..9 | Split-Pipeline {} -Load 1,0 } catch { $_ }
-	assert ("$$" -ceq @'
-Cannot bind parameter 'Load' to the target. Exception setting "Load": "Load maximum must be greater or equal to minimum."
-'@)
+	($$ = try {1..9 | Split-Pipeline {} -Load 1,0} catch {$_})
+	assert ($$.FullyQualifiedErrorId -eq 'ParameterBindingFailed,SplitPipeline.SplitPipelineCommand')
 
 	# [0]<1 is fine and treated as omitted, [1] is ignored
 	$r = 1..9 | Split-Pipeline {@($input).Count} -Load 0,-1 -Count 2

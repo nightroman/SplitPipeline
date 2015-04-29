@@ -196,10 +196,11 @@ task PushNuGet NuGet, {
 },
 Clean
 
-# Synopsis: Test v2 and v3.
+# Synopsis: Test v3+ and v2.
 task Test {
-	exec { PowerShell.exe -Version 2 Invoke-Build ** Tests }
 	Invoke-Build ** Tests
+	PowerShell.exe -Version 2 Invoke-Build ** Tests
+	if ($LASTEXITCODE) {Write-Warning 'V2 tests failed.'}
 }
 
 # Synopsis: Build, test and clean all.

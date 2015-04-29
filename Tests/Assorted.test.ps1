@@ -20,29 +20,27 @@ task ApartmentState {
 }
 
 task JobSoftErrorAndCmdletErrorContinueMode {
-	42 | Split-Pipeline -ErrorAction Continue -OutVariable OutVariable -ErrorVariable ErrorVariable {process{
+	42 | Split-Pipeline -ErrorAction Continue -OutVariable OV -ErrorVariable EV {process{
 		$_
 		Get-Variable MissingSafe
 	}}
 
-	assert ($OutVariable.Count -eq 1)
-	assert (42 -eq $OutVariable[0])
-	assert ($ErrorVariable.Count -eq 1)
-	assert ("Cannot find a variable with name 'MissingSafe'." -eq $ErrorVariable[0])
+	assert ($OV.Count -eq 1)
+	assert (42 -eq $OV[0])
+	assert ($EV.Count -eq 1)
+	assert ('ObjectNotFound: (MissingSafe:String) [Split-Pipeline], ItemNotFoundException' -eq $EV[0].CategoryInfo)
 }
 
 task JobSoftErrorThenFailure {
-	$4 = ''
+	$e = ''
 	try {
 		42 | Split-Pipeline {process{
 			Get-Variable MissingSafe
 			Get-Variable MissingStop -ErrorAction Stop
 		}}
 	}
-	catch {$4 = "$_"}
-
-	Write-Build Magenta $4
-	assert ($4 -eq "Cannot find a variable with name 'MissingStop'.") $4
+	catch {($e = $_)}
+	assert ('ObjectNotFound: (MissingStop:String) [Get-Variable], ItemNotFoundException' -eq $e.CategoryInfo)
 }
 
 task Refill {
