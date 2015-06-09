@@ -46,3 +46,27 @@ task JobSoftErrorThenFailure {
 task Refill {
 	.\Test-Refill.ps1
 }
+
+# Issue #12
+task VerbosePreferenceString {
+	$VerbosePreference = 'Continue'
+	1 | Split-Pipeline {
+		Write-Verbose test-verbose
+	}
+}
+
+# Issue #12
+task VerbosePreferenceNumber {
+	$VerbosePreference = 2
+	1 | Split-Pipeline {
+		Write-Verbose test-verbose
+	}
+}
+
+# Issue #12
+task VerbosePreferenceInvalid {
+	$VerbosePreference = 'Invalid'
+	1 | Split-Pipeline {
+		Write-Verbose test-verbose
+	}
+}

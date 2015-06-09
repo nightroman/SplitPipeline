@@ -1,6 +1,10 @@
 
 # SplitPipeline Release Notes
 
+## v1.5.2
+
+Fixed #12 `VerbosePreference` can be any value.
+
 ## v1.5.1
 
 Fixed #10 Tight loop in `EndProcessing()`

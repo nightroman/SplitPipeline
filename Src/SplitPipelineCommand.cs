@@ -192,9 +192,16 @@ namespace SplitPipeline
 			// verbose state
 			object parameter;
 			if (MyInvocation.BoundParameters.TryGetValue("Verbose", out parameter))
+			{
 				_verbose = ((SwitchParameter)parameter).ToBool();
+			}
 			else
-				_verbose = (ActionPreference)GetVariableValue("VerbosePreference") != ActionPreference.SilentlyContinue;
+			{
+				// #12 VerbosePreference value can be anything
+				ActionPreference preference;
+				if (LanguagePrimitives.TryConvertTo<ActionPreference>(GetVariableValue("VerbosePreference"), out preference))
+					_verbose = preference != ActionPreference.SilentlyContinue;
+			}
 		}
 		protected override void ProcessRecord()
 		{
