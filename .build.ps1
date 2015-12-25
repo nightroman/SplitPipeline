@@ -108,10 +108,11 @@ task TestHelp Help, {
 	Test-Helps Module\en-US\$ModuleName.dll-Help.ps1
 }
 
-# Synopsis: Docs by https://www.nuget.org/packages/MarkdownToHtml
-task ConvertMarkdown {
-	exec { MarkdownToHtml from=README.md to=README.htm }
-	exec { MarkdownToHtml from=Release-Notes.md to=Release-Notes.htm }
+# Synopsis: Convert markdown files to HTML.
+# <http://johnmacfarlane.net/pandoc/>
+task Markdown {
+	exec { pandoc.exe --standalone --from=markdown_strict --output=README.htm README.md }
+	exec { pandoc.exe --standalone --from=markdown_strict --output=Release-Notes.htm Release-Notes.md }
 }
 
 # Synopsis: Set $script:Version.
@@ -124,7 +125,7 @@ task Version {
 }
 
 # Synopsis: Make the package in z\tools.
-task Package ConvertMarkdown, {
+task Package Markdown, {
 	Remove-Item [z] -Force -Recurse
 	$null = mkdir z\tools\$ModuleName\en-US
 
