@@ -19,7 +19,7 @@ $ProcessorCount = [Environment]::ProcessorCount
 task Error {
 	# [0] <= 0 ~ default
 	$r = 1..$ItemCount | Split-Pipeline {@($input).Count} -Count 0, -1
-	assert ($r.Count -eq $ProcessorCount)
+	equals $r.Count $ProcessorCount
 
 	$$ = try { 1..9 | Split-Pipeline {} -Count 1, -1 } catch { $_ }
 	assert ("$$" -clike @'
@@ -29,15 +29,15 @@ task Error {
 
 task LessThanProcessorCount {
 	$r = @(1..$ItemCount | Split-Pipeline {1} -Count 1, 1)
-	assert ($r.Count -eq 1)
+	equals $r.Count 1
 }
 
 task EqualToProcessorCount0 {
 	$r = @(1..$ItemCount | Split-Pipeline {1} -Count 1, $ProcessorCount)
-	assert ($r.Count -eq $ProcessorCount)
+	equals $r.Count $ProcessorCount
 }
 
 task EqualToProcessorCount1 {
 	$r = @(1..$ItemCount | Split-Pipeline {1} -Count 1, ($ProcessorCount + 1))
-	assert ($r.Count -eq $ProcessorCount)
+	equals $r.Count $ProcessorCount
 }

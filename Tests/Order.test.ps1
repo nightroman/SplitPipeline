@@ -30,13 +30,11 @@ task Ordered {
 
 	# unordered
 	$lastId = [ref]-1
-	$r = 1..100 | Split-Pipeline @param
-	"$r"
+	($r = 1..100 | Split-Pipeline @param)
 	if ("$r" -eq $sample) { Write-Warning "Normally expected unordered data." }
 
 	# ordered
 	$lastId = [ref]-1
-	$r = 1..100 | Split-Pipeline -Order @param
-	"$r"
-	assert ("$r" -eq $sample)
+	($r = 1..100 | Split-Pipeline -Order @param)
+	equals "$r" $sample
 }

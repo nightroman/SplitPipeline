@@ -18,7 +18,7 @@ task Finally1 {
 		-Finally {throw 'Throw in Finally'}
 	}
 	catch { $1 = "$_" }
-	assert ($1 -eq 'Throw in Script')
+	equals $1 'Throw in Script'
 }
 
 task Finally2 {
@@ -72,12 +72,12 @@ task BeginProcessEnd {
 	$end_split = ($result -eq 'end split').Count
 	assert ($begin_split -eq 1 -or $begin_split -eq 2) $begin_split
 	assert ($end_split -eq 1 -or $end_split -eq 2) $end_split
-	assert ($begin_split -eq $end_split)
+	equals $begin_split $end_split
 
 	# 4 'begin/end part' due to 4 items and -Limit 1
-	assert (($result -eq 'begin part').Count -eq 4)
-	assert (($result -eq 'end part').Count -eq 4)
+	equals ($result -eq 'begin part').Count 4
+	equals ($result -eq 'end part').Count 4
 
 	# all
-	assert ($result.Count -eq (12 + 2 * $end_split))
+	equals $result.Count (12 + 2 * $end_split)
 }

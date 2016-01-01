@@ -58,7 +58,7 @@ task Issue3 {
 
 	# start Split-Pipeline
 	'BeginInvoke'
-	$a1 = $ps.BeginInvoke()
+	$null = $ps.BeginInvoke()
 
 	# wait for two jobs to start, i.e. two notepads
 	while(@(Get-Process [n]otepad).Count -lt 2) {
@@ -66,7 +66,7 @@ task Issue3 {
 	}
 
 	# 2 jobs started
-	assert (@(Get-Process [n]otepad).Count -eq 2)
+	equals @(Get-Process [n]otepad).Count 2
 
 	# start stopping, fake [Ctrl-C]
 	'BeginStop'
@@ -90,7 +90,7 @@ task Issue3 {
 
 	# logs
 	$logs = Get-Item "C:\TEMP\SplitPipelineIssue3\*"
-	assert ($logs.Count -eq 4)
+	equals $logs.Count 4
 	assert ($logs[0].Name -like 'Begin-*-*-*-*-*')
 	assert ($logs[1].Name -like 'Begin-*-*-*-*-*')
 	assert ($logs[2].Name -like 'Finally-*-*-*-*-*')

@@ -39,7 +39,7 @@ task Meta -Inputs Release-Notes.md -Outputs Module\$ModuleName.psd1, Src\Assembl
 	$Version = Get-Version
 	$Project = 'https://github.com/nightroman/SplitPipeline'
 	$Summary = 'SplitPipeline - Parallel Data Processing in PowerShell'
-	$Copyright = 'Copyright (c) 2011-2015 Roman Kuzmin'
+	$Copyright = 'Copyright (c) 2011-2016 Roman Kuzmin'
 
 	Set-Content Module\$ModuleName.psd1 @"
 @{

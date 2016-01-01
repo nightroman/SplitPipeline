@@ -76,7 +76,7 @@ for($n = 1; $n -le $Repeat; ++$n) {
 	$ps = [PowerShell]::Create()
 	$ps.Runspace = $rs
 	$null = $ps.AddScript($test)
-	$a1 = $ps.BeginInvoke()
+	$null = $ps.BeginInvoke()
 
 	# wait for a random time
 	$random = New-Object System.Random

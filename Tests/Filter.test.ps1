@@ -25,12 +25,12 @@ task FilterInputUniqueByScript {
 			$true
 		}
 	}
-	assert ($OutVariable.Count -eq 5)
-	assert ('1 2 3 4 5' -eq (($OutVariable | Sort-Object) -join ' '))
+	equals $OutVariable.Count 5
+	equals '1 2 3 4 5' (($OutVariable | Sort-Object) -join ' ')
 }
 
 task FilterInputUniqueByHashtable {
 	1,1,2,2,3,3,4,4,5,5 | Split-Pipeline -OutVariable OutVariable {$input} -Filter @{}
-	assert ($OutVariable.Count -eq 5)
-	assert ('1 2 3 4 5' -eq (($OutVariable | Sort-Object) -join ' '))
+	equals $OutVariable.Count 5
+	equals '1 2 3 4 5' (($OutVariable | Sort-Object) -join ' ')
 }

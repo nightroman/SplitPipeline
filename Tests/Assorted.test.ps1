@@ -25,9 +25,9 @@ task JobSoftErrorAndCmdletErrorContinueMode {
 		Get-Variable MissingSafe
 	}}
 
-	assert ($OV.Count -eq 1)
-	assert (42 -eq $OV[0])
-	assert ($EV.Count -eq 1)
+	equals $OV.Count 1
+	equals $OV[0] 42
+	equals $EV.Count 1
 	assert ('ObjectNotFound: (MissingSafe:String) [Split-Pipeline], ItemNotFoundException' -eq $EV[0].CategoryInfo)
 }
 

@@ -18,7 +18,7 @@ task ImportVariable {
 		if ($value2 -ne 2) {throw 'value2'}
 		$input
 	}
-	assert ($result.Count -eq 10)
+	equals $result.Count 10
 }
 
 task ImportFunction {
@@ -29,12 +29,12 @@ task ImportFunction {
 		if ((Function2) -ne 2) {throw 'Function2'}
 		$input
 	}
-	assert ($result.Count -eq 10)
+	equals $result.Count 10
 }
 
 task ImportModule {
 	$result = 1..10 | Split-Pipeline -Count 2 -Module SplitPipeline {
 		$input | Split-Pipeline -Count 2 {$input}
 	}
-	assert ($result.Count -eq 10)
+	equals $result.Count 10
 }
