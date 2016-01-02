@@ -144,9 +144,9 @@ task Package Markdown, {
 # Synopsis: Make NuGet package.
 task NuGet Package, Version, {
 	$summary = @'
-PowerShell module for parallel data processing. Split-Pipeline splits the
-input, processes parts by parallel pipelines, and outputs data for further
-processing. It may work without collecting the whole input, large or infinite.
+PowerShell v2.0+ module for parallel data processing. Split-Pipeline splits the
+input, processes parts by parallel pipelines, and outputs results. It may work
+without collecting the whole input, large or infinite.
 '@
 	$description = @"
 $summary
@@ -198,7 +198,7 @@ task PushNuGet NuGet, {
 Clean
 
 # Synopsis: Test v2.
-task TestV2 {
+task Test2 {
 	exec {PowerShell.exe -Version 2 Invoke-Build ** Tests}
 }
 
@@ -208,4 +208,4 @@ task Test {
 }
 
 # Synopsis: Build, test and clean all.
-task . Build, Test, TestV2, TestHelp, Clean
+task . Build, Test, Test2, TestHelp, Clean

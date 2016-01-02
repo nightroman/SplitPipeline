@@ -1,10 +1,9 @@
 
-Parallel Data Processing in PowerShell
-======================================
+# Parallel Data Processing in PowerShell
 
-PowerShell module for parallel data processing. Split-Pipeline splits the
-input, processes parts by parallel pipelines, and outputs data for further
-processing. It may work without collecting the whole input, large or infinite.
+PowerShell v2.0+ module for parallel data processing. Split-Pipeline splits the
+input, processes parts by parallel pipelines, and outputs results. It may work
+without collecting the whole input, large or infinite.
 
 ## Quick Start
 
@@ -12,11 +11,10 @@ processing. It may work without collecting the whole input, large or infinite.
 SplitPipeline is distributed as the NuGet package [SplitPipeline](https://www.nuget.org/packages/SplitPipeline).
 Download it to the current location as the directory *"SplitPipeline"* by this PowerShell command:
 
-    iex (New-Object Net.WebClient).DownloadString('https://raw.github.com/nightroman/SplitPipeline/master/Download.ps1')
+    Invoke-Expression "& {$((New-Object Net.WebClient).DownloadString('https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1'))} SplitPipeline"
 
 Alternatively, download it by NuGet tools or [directly](http://nuget.org/api/v2/package/SplitPipeline).
-In the latter case rename the package to *".zip"* and unzip. Use the package
-subdirectory *"tools/SplitPipeline"*.
+In the latter case save it as *".zip"* and unzip. Use the package subdirectory *"tools/SplitPipeline"*.
 
 Copy the directory *SplitPipeline* to a PowerShell module directory, see
 `$env:PSModulePath`, normally like this:
