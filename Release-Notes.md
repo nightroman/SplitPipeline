@@ -1,6 +1,10 @@
 
 # SplitPipeline Release Notes
 
+## v1.5.3
+
+Packaged and published as PSGallery module.
+
 ## v1.5.2
 
 Fixed #12 `VerbosePreference` can be any value.

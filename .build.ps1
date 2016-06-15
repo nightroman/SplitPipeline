@@ -53,6 +53,20 @@ task Meta -Inputs Release-Notes.md -Outputs Module\$ModuleName.psd1, Src\Assembl
 
 	PowerShellVersion = '2.0'
 	GUID = '7806b9d6-cb68-4e21-872a-aeec7174a087'
+
+	CmdletsToExport = 'Split-Pipeline'
+	FunctionsToExport = @()
+	VariablesToExport = @()
+	AliasesToExport = @()
+
+	PrivateData = @{
+		PSData = @{
+			Tags = 'Parallel', 'Pipeline', 'Runspace', 'Invoke', 'Foreach'
+			LicenseUri = 'http://www.apache.org/licenses/LICENSE-2.0'
+			ProjectUri = 'https://github.com/nightroman/SplitPipeline'
+			ReleaseNotes = 'https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md'
+		}
+	}
 }
 "@
 
@@ -193,9 +207,20 @@ task PushRelease Version, {
 
 # Synopsis: Make and push the NuGet package.
 task PushNuGet NuGet, {
-	exec { NuGet push "$ModuleName.$Version.nupkg" }
+	exec { NuGet push "$ModuleName.$Version.nupkg" -Source nuget.org }
 },
 Clean
+
+# Synopsis: Complete the module for PSGallery.
+task Module Markdown, {
+	# copy/move files
+	Copy-Item LICENSE.txt -Destination $ModuleRoot
+	Move-Item README.htm, Release-Notes.htm -Destination $ModuleRoot -Force
+
+	# test all files
+	$r = (Get-ChildItem $ModuleRoot -Force -Recurse -Name) -join '*'
+	equals $r en-US*LICENSE.txt*README.htm*Release-Notes.htm*SplitPipeline.dll*SplitPipeline.psd1*en-US\about_SplitPipeline.help.txt*en-US\SplitPipeline.dll-Help.xml
+}
 
 # Synopsis: Test v2.
 task Test2 {
