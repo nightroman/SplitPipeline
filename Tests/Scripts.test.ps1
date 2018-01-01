@@ -10,6 +10,9 @@
 Import-Module SplitPipeline
 Set-StrictMode -Version Latest
 
+$Version = $PSVersionTable.PSVersion.Major
+$IsCore = $Version -eq 6 -and $PSVersionTable.PSEdition -eq 'Core'
+
 task Finally1 {
 	$1 = ''
 	try {
@@ -31,7 +34,7 @@ task Finally2 {
 	assert ($result.Count -eq 2) $result.Count
 }
 
-task BeginProcessEnd {
+task BeginProcessEnd -If (!$IsCore) {
 	$DebugPreference = 'Continue'
 	$result = 1..4 | Split-Pipeline -Count 2 -Load 1 -Verbose `
 	-Begin {

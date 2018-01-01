@@ -35,11 +35,11 @@ function Get-Version {
 }
 
 # Synopsis: Generate or update meta files.
-task Meta -Inputs Release-Notes.md -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
+task Meta -Inputs Release-Notes.md, .build.ps1 -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
 	$Version = Get-Version
 	$Project = 'https://github.com/nightroman/SplitPipeline'
 	$Summary = 'SplitPipeline - Parallel Data Processing in PowerShell'
-	$Copyright = 'Copyright (c) 2011-2016 Roman Kuzmin'
+	$Copyright = 'Copyright (c) 2011-2018 Roman Kuzmin'
 
 	Set-Content Module\$ModuleName.psd1 @"
 @{
@@ -96,8 +96,7 @@ task Build Meta, {
 task PostBuild {
 	exec { robocopy Module $ModuleRoot /s /np /r:0 /xf *-Help.ps1 } (0..3)
 	Copy-Item Src\Bin\$Configuration\$ModuleName.dll $ModuleRoot
-},
-(job Help -Safe)
+}, ?Help
 
 # Synopsis: Remove temp and info files.
 task Clean {

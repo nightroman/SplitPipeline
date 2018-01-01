@@ -10,7 +10,10 @@
 Import-Module SplitPipeline
 Set-StrictMode -Version Latest
 
-task ApartmentState {
+$Version = $PSVersionTable.PSVersion.Major
+$IsCore = $Version -eq 6 -and $PSVersionTable.PSEdition -eq 'Core'
+
+task ApartmentState -If (!$IsCore) {
 	# default
 	assert ("MTA" -eq (1 | Split-Pipeline { [System.Threading.Thread]::CurrentThread.ApartmentState }))
 	# MTA
