@@ -2,6 +2,7 @@
 *.suo
 *.user
 *.zip
+.vs
 AssemblyInfo.cs
 bin
 obj
