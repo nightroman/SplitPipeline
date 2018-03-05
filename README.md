@@ -15,16 +15,7 @@ In PowerShell 5.0 or with PowerShellGet you can install it by this command:
     Install-Module SplitPipeline
 
 SplitPipeline is also available as the NuGet package [SplitPipeline](https://www.nuget.org/packages/SplitPipeline).
-Download it to the current location as the directory *"SplitPipeline"* by this command:
-
-    Invoke-Expression "& {$((New-Object Net.WebClient).DownloadString('https://github.com/nightroman/PowerShelf/raw/master/Save-NuGetTool.ps1'))} SplitPipeline"
-
-and copy the directory *SplitPipeline* to a PowerShell module directory, see
-`$env:PSModulePath`, normally like this:
-
-    C:/Users/<User>/Documents/WindowsPowerShell/Modules/SplitPipeline
-
-Alternatively, download it by NuGet tools or [directly](http://nuget.org/api/v2/package/SplitPipeline).
+Download it by NuGet tools or [directly](http://nuget.org/api/v2/package/SplitPipeline).
 In the latter case save it as *".zip"* and unzip. Use the package subdirectory *"tools/SplitPipeline"*.
 
 **Step 2:** In a PowerShell command prompt import the module:
