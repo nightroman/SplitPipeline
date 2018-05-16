@@ -32,8 +32,8 @@ Set-StrictMode -Version Latest
 task Issue3 {
 	assert (!(Get-Process [n]otepad))
 
-	Remove-Item -LiteralPath "C:\TEMP\SplitPipelineIssue3" -Force -Recurse -ErrorAction 0
-	$null = mkdir "C:\TEMP\SplitPipelineIssue3"
+	remove C:\TEMP\SplitPipelineIssue3
+	$null = mkdir C:\TEMP\SplitPipelineIssue3
 
 	# Split-Pipeline to be stopped
 	$ps = [PowerShell]::Create()
@@ -89,7 +89,7 @@ task Issue3 {
 	assert (!(Get-Process [N]otepad))
 
 	# logs
-	$logs = Get-Item "C:\TEMP\SplitPipelineIssue3\*"
+	$logs = Get-Item C:\TEMP\SplitPipelineIssue3\*
 	equals $logs.Count 4
 	assert ($logs[0].Name -like 'Begin-*-*-*-*-*')
 	assert ($logs[1].Name -like 'Begin-*-*-*-*-*')
@@ -97,7 +97,7 @@ task Issue3 {
 	assert ($logs[3].Name -like 'Finally-*-*-*-*-*')
 
 	# end
-	Remove-Item -LiteralPath "C:\TEMP\SplitPipelineIssue3" -Force -Recurse -ErrorAction 0
+	remove C:\TEMP\SplitPipelineIssue3
 }
 
 task Random {

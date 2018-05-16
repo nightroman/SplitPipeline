@@ -100,9 +100,7 @@ task PostBuild {
 
 # Synopsis: Remove temp and info files.
 task Clean {
-	Remove-Item -Force -Recurse -ErrorAction 0 `
-	Module\$ModuleName.psd1, "$ModuleName.*.nupkg",
-	z, Src\bin, Src\obj, Src\AssemblyInfo.cs, README.htm, Release-Notes.htm
+	remove Module\$ModuleName.psd1, "$ModuleName.*.nupkg", z, Src\bin, Src\obj, Src\AssemblyInfo.cs, README.htm, Release-Notes.htm
 }
 
 # Synopsis: Build help by Helps (https://github.com/nightroman/Helps).
@@ -139,7 +137,7 @@ task Version {
 
 # Synopsis: Make the package in z\tools.
 task Package Markdown, {
-	Remove-Item [z] -Force -Recurse
+	remove z
 	$null = mkdir z\tools\$ModuleName\en-US
 
 	Copy-Item -Destination z\tools\$ModuleName `
