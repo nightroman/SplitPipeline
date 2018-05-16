@@ -18,6 +18,9 @@ namespace SplitPipeline
 		[Parameter(Position = 0, Mandatory = true)]
 		public ScriptBlock Script { get; set; }
 
+		[Parameter(Position = 1, ValueFromPipeline = true)]
+		public PSObject InputObject { get; set; }
+
 		[Parameter]
 		public ScriptBlock Begin { get; set; }
 
@@ -61,9 +64,6 @@ namespace SplitPipeline
 
 		[Parameter]
 		public SwitchParameter Refill { get; set; }
-
-		[Parameter(ValueFromPipeline = true)]
-		public PSObject InputObject { get; set; }
 
 		[Parameter]
 		[ValidateCount(1, 2)]
@@ -129,6 +129,7 @@ namespace SplitPipeline
 		bool xStop;
 		bool _closed;
 		bool _verbose;
+		bool _isExpectingInput;
 		int _infoItemCount;
 		int _infoPartCount;
 		int _infoWaitCount;
@@ -189,13 +190,33 @@ namespace SplitPipeline
 				if (LanguagePrimitives.TryConvertTo<ActionPreference>(GetVariableValue("VerbosePreference"), out preference))
 					_verbose = preference != ActionPreference.SilentlyContinue;
 			}
+
+			// if items are sent as the parameter then enque them
+			_isExpectingInput = MyInvocation.ExpectingInput;
+			if (!_isExpectingInput)
+			{
+				var items = LanguagePrimitives.GetEnumerable(InputObject);
+				if (items == null)
+				{
+					_isExpectingInput = true;
+				}
+				else
+				{
+					foreach (var it in items)
+						if (it == null)
+							Enqueue(null);
+						else
+							Enqueue(PSObject.AsPSObject(it));
+				}
+			}
 		}
 		protected override void ProcessRecord()
 		{
 			try
 			{
 				// add to the queue
-				Enqueue(InputObject);
+				if (_isExpectingInput)
+					Enqueue(InputObject);
 
 				// simple mode or too few items for a job?
 				if (Load == null || _queue.Count < MinLoad)

@@ -53,6 +53,12 @@ task TheWholeInput {
 	equals $r.Count 2
 	equals $r[0] 6
 	equals $r[1] 5
+
+	# same using the parameter, 1.6.0
+	($r = Split-Pipeline -Count 2 {@($input).Count} (1..11))
+	equals $r.Count 2
+	equals $r[0] 6
+	equals $r[1] 5
 }
 
 # `-Load 1` lets the algorithm to work as soon as any input available

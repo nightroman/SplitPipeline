@@ -1,6 +1,10 @@
 
 # SplitPipeline Release Notes
 
+## v1.6.0
+
+Input objects may be provided using the parameter `InputObject`, #19.
+
 ## v1.5.3
 
 Packaged and published as PSGallery module.

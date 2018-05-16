@@ -37,4 +37,9 @@ task Ordered {
 	$lastId = [ref]-1
 	($r = 1..100 | Split-Pipeline -Order @param)
 	equals "$r" $sample
+
+	# ordered, 1.6.0
+	$lastId = [ref]-1
+	($r = Split-Pipeline -Order @param (1..100))
+	equals "$r" $sample
 }

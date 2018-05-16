@@ -62,6 +62,11 @@ Import-Module SplitPipeline
 		Note that "begin" and "end" blocks are called for each input part but
 		scripts defined by parameters Begin and End are called for pipelines.
 '@
+		InputObject = @'
+		Input objects processed by parallel pipelines. Normally this parameter
+		is not used directly, objects are sent using the pipeline. But it is
+		fine to specify the input using this parameter.
+'@
 		Begin = @'
 		The script invoked for each pipeline on creation before processing. The
 		goal is to initialize the runspace to be used by the pipeline, normally
@@ -151,10 +156,6 @@ Import-Module SplitPipeline
 
 		NOTE: Refilled input makes infinite loops possible for some data. Use
 		Filter in order to exclude already processed objects and avoid loops.
-'@
-		InputObject = @'
-		Input objects processed by parallel pipelines. Do not use this
-		parameter directly, use the pipeline operator instead.
 '@
 		ApartmentState = @'
 		Specify either "MTA" (multi-threaded ) or "STA" (single-threaded) for
