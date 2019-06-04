@@ -42,6 +42,9 @@ Import-Module SplitPipeline
 
 	Input parts are not necessarily processed in the same order as they come.
 	But output parts can be ordered according to input, use the switch Order.
+
+	In rare scenarios when synchronous code must be invoked in pipelines,
+	use the helper $Pipeline.Lock, see the repository tests for examples.
 '@
 	parameters = @{
 		Script = @'

@@ -161,6 +161,7 @@ namespace SplitPipeline
 			// import variables
 			_iss.Variables.Add(new SessionStateVariableEntry("LogEngineLifeCycleEvent", false, string.Empty)); // whole log disabled
 			_iss.Variables.Add(new SessionStateVariableEntry("LogProviderLifeCycleEvent", false, string.Empty)); // start is still logged
+			_iss.Variables.Add(new SessionStateVariableEntry("Pipeline", new Helper(), "Pipeline helper"));
 			if (Variable != null)
 			{
 				foreach (var name in Variable)

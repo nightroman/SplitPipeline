@@ -12,8 +12,7 @@ Set-StrictMode -Version Latest
 
 # Use large enough number of items. Small number may not load all cores.
 # Example: 20 items for 8 cores actually gives 7 pipes: 3, 3, .. 2
-$ItemCount = 100
-
+$ItemCount = 1000
 $ProcessorCount = [Environment]::ProcessorCount
 
 task Error {

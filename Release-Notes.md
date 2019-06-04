@@ -1,6 +1,11 @@
 
 # SplitPipeline Release Notes
 
+## v1.6.1
+
+New helper `$Pipeline.Lock(script)` for mutually exclusive operations, #25.
+It is not designed for usual scenarios because it "breaks" parallel flows.
+
 ## v1.6.0
 
 Input objects may be provided using the parameter `InputObject`, #19.

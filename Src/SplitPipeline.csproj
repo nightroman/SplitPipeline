@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Helper.cs" />
     <Compile Include="Job.cs" />
     <Compile Include="SplitPipelineCommand.cs" />
   </ItemGroup>

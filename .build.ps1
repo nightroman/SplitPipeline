@@ -21,13 +21,12 @@ param(
 	$Configuration = 'Release'
 )
 
+# Module data.
 $ModuleName = 'SplitPipeline'
-
-# Module directory.
 $ModuleRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) WindowsPowerShell\Modules\$ModuleName
 
 # Use MSBuild.
-use 4.0 MSBuild
+Set-Alias MSBuild (Resolve-MSBuild)
 
 # Get version from release notes.
 function Get-Version {
@@ -100,7 +99,7 @@ task PostBuild {
 
 # Synopsis: Remove temp and info files.
 task Clean {
-	remove Module\$ModuleName.psd1, "$ModuleName.*.nupkg", z, Src\bin, Src\obj, Src\AssemblyInfo.cs, README.htm, Release-Notes.htm
+	remove Module\$ModuleName.psd1, "$ModuleName.*.nupkg", z, Src\bin, Src\obj, README.htm, Release-Notes.htm
 }
 
 # Synopsis: Build help by Helps (https://github.com/nightroman/Helps).
@@ -178,8 +177,8 @@ https://github.com/nightroman/SplitPipeline#quick-start
 		<version>$Version</version>
 		<owners>Roman Kuzmin</owners>
 		<authors>Roman Kuzmin</authors>
+		<license type="expression">Apache-2.0</license>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
 		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
 		<summary>$summary</summary>
 		<description>$description</description>
