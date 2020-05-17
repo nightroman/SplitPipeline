@@ -1,9 +1,12 @@
 *.dll
+*.htm
+*.nupkg
 *.suo
 *.user
 *.zip
 .vs
-AssemblyInfo.cs
 bin
 obj
+z
+AssemblyInfo.cs
 SplitPipeline.psd1

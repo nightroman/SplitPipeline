@@ -76,7 +76,7 @@ namespace SplitPipeline
 					return;
 
 				if (value.Length == 2 && value[0] > value[1])
-					throw new PSArgumentException("Load maximum must be greater or equal to minimum.");
+					throw new PSArgumentException("Load maximum must be greater than or equal to minimum.");
 
 				_Load = value;
 				MinLoad = value[0];
@@ -179,16 +179,14 @@ namespace SplitPipeline
 			}
 
 			// verbose state
-			object parameter;
-			if (MyInvocation.BoundParameters.TryGetValue("Verbose", out parameter))
+			if (MyInvocation.BoundParameters.TryGetValue("Verbose", out object parameter))
 			{
 				_verbose = ((SwitchParameter)parameter).ToBool();
 			}
 			else
 			{
 				// #12 VerbosePreference value can be anything
-				ActionPreference preference;
-				if (LanguagePrimitives.TryConvertTo<ActionPreference>(GetVariableValue("VerbosePreference"), out preference))
+				if (LanguagePrimitives.TryConvertTo<ActionPreference>(GetVariableValue("VerbosePreference"), out ActionPreference preference))
 					_verbose = preference != ActionPreference.SilentlyContinue;
 			}
 
@@ -505,11 +503,10 @@ Items /sec = {6}
 					{
 						if (it != null)
 						{
-							var reference = it.BaseObject as PSReference;
-							if (reference == null)
-								WriteObject(it);
-							else
+							if (it.BaseObject is PSReference reference)
 								Enqueue(new PSObject(reference.Value));
+							else
+								WriteObject(it);
 						}
 					}
 				}
@@ -528,6 +525,14 @@ Items /sec = {6}
 			{
 				foreach (var record in streams.Error)
 					WriteError(record);
+			}
+
+			// ensure warnings are added to the variable
+			// https://github.com/nightroman/SplitPipeline/issues/29
+			if (streams.Warning.Count > 0 && MyInvocation.BoundParameters.TryGetValue("WarningVariable", out _))
+			{
+				foreach (var record in streams.Warning)
+					WriteWarning(record.Message);
 			}
 
 			// v1.4.2 Debug, progress, verbose, and warning messages are written to the host.

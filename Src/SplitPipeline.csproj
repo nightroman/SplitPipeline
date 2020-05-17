@@ -70,7 +70,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>PowerShell.exe -NoProfile Invoke-Build.ps1 PostBuild $(ProjectDir)\..\.build.ps1 -Configuration $(ConfigurationName)</PostBuildEvent>
+    <PostBuildEvent>ib postBuild $(ProjectDir)\..\.build.ps1 -Configuration $(ConfigurationName)</PostBuildEvent>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
 </Project>

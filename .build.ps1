@@ -1,20 +1,6 @@
-
 <#
 .Synopsis
-	Build script (https://github.com/nightroman/Invoke-Build)
-
-.Description
-	HOW TO USE THIS SCRIPT AND BUILD THE MODULE
-
-	Get the utility script Invoke-Build.ps1:
-	https://github.com/nightroman/Invoke-Build
-
-	Copy it to the path. Set location to here. Build:
-	PS> Invoke-Build Build
-
-	The task Help fails if Helps.ps1 is missing.
-	Ignore this error or get Helps.ps1:
-	https://github.com/nightroman/Helps
+	Build script, https://github.com/nightroman/Invoke-Build
 #>
 
 param(
@@ -23,7 +9,7 @@ param(
 
 # Module data.
 $ModuleName = 'SplitPipeline'
-$ModuleRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) WindowsPowerShell\Modules\$ModuleName
+$ModuleRoot = "$env:ProgramW6432\WindowsPowerShell\Modules\$ModuleName"
 
 # Use MSBuild.
 Set-Alias MSBuild (Resolve-MSBuild)
@@ -34,7 +20,7 @@ function Get-Version {
 }
 
 # Synopsis: Generate or update meta files.
-task Meta -Inputs Release-Notes.md, .build.ps1 -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
+task meta -Inputs Release-Notes.md, .build.ps1 -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
 	$Version = Get-Version
 	$Project = 'https://github.com/nightroman/SplitPipeline'
 	$Summary = 'SplitPipeline - Parallel Data Processing in PowerShell'
@@ -86,24 +72,25 @@ using System.Runtime.InteropServices;
 }
 
 # Synopsis: Build, on post-build event copy files and make help.
-task Build Meta, {
-	exec { MSBuild Src\$ModuleName.csproj /t:Build /p:Configuration=$Configuration /p:TargetFrameworkVersion=v2.0 }
+task build meta, {
+	exec { MSBuild Src\$ModuleName.csproj /t:Build /p:Configuration=$Configuration }
 }
 
 # Synopsis: Copy files to the module, then make help.
 # It is called from the post-build event.
-task PostBuild {
+task postBuild {
 	exec { robocopy Module $ModuleRoot /s /np /r:0 /xf *-Help.ps1 } (0..3)
 	Copy-Item Src\Bin\$Configuration\$ModuleName.dll $ModuleRoot
-}, ?Help
+},
+?help
 
 # Synopsis: Remove temp and info files.
-task Clean {
-	remove Module\$ModuleName.psd1, "$ModuleName.*.nupkg", z, Src\bin, Src\obj, README.htm, Release-Notes.htm
+task clean {
+	remove Module\$ModuleName.psd1, "$ModuleName.*.nupkg", z, Src\bin, Src\obj, README.htm
 }
 
-# Synopsis: Build help by Helps (https://github.com/nightroman/Helps).
-task Help -Inputs (
+# Synopsis: Build help by https://github.com/nightroman/Helps
+task help -Inputs (
 	Get-Item Src\*.cs, Module\en-US\$ModuleName.dll-Help.ps1
 ) -Outputs (
 	"$ModuleRoot\en-US\$ModuleName.dll-Help.xml"
@@ -113,20 +100,19 @@ task Help -Inputs (
 }
 
 # Synopsis: Build and test help.
-task TestHelp Help, {
+task testHelp help, {
 	. Helps.ps1
 	Test-Helps Module\en-US\$ModuleName.dll-Help.ps1
 }
 
 # Synopsis: Convert markdown files to HTML.
 # <http://johnmacfarlane.net/pandoc/>
-task Markdown {
-	exec { pandoc.exe --standalone --from=markdown_strict --output=README.htm README.md }
-	exec { pandoc.exe --standalone --from=markdown_strict --output=Release-Notes.htm Release-Notes.md }
+task markdown {
+	exec { pandoc.exe --standalone --from=gfm --output=README.htm --metadata=pagetitle=$ModuleName README.md }
 }
 
 # Synopsis: Set $script:Version.
-task Version {
+task version {
 	($script:Version = Get-Version)
 	# module version
 	assert ((Get-Module $ModuleName -ListAvailable).Version -eq ([Version]$script:Version))
@@ -135,14 +121,13 @@ task Version {
 }
 
 # Synopsis: Make the package in z\tools.
-task Package Markdown, {
+task package markdown, {
 	remove z
 	$null = mkdir z\tools\$ModuleName\en-US
 
 	Copy-Item -Destination z\tools\$ModuleName `
-	LICENSE.txt,
+	LICENSE,
 	README.htm,
-	Release-Notes.htm,
 	$ModuleRoot\$ModuleName.dll,
 	$ModuleRoot\$ModuleName.psd1
 
@@ -152,22 +137,13 @@ task Package Markdown, {
 }
 
 # Synopsis: Make NuGet package.
-task NuGet Package, Version, {
-	$summary = @'
+task nuget package, version, {
+	$description = @'
 PowerShell v2.0+ module for parallel data processing. Split-Pipeline splits the
 input, processes parts by parallel pipelines, and outputs results. It may work
 without collecting the whole input, large or infinite.
 '@
-	$description = @"
-$summary
 
----
-
-To install SplitPipeline, follow the Quick Start steps:
-https://github.com/nightroman/SplitPipeline#quick-start
-
----
-"@
 	# nuspec
 	Set-Content z\Package.nuspec @"
 <?xml version="1.0"?>
@@ -180,7 +156,6 @@ https://github.com/nightroman/SplitPipeline#quick-start
 		<license type="expression">Apache-2.0</license>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
-		<summary>$summary</summary>
 		<description>$description</description>
 		<tags>PowerShell Module Parallel</tags>
 		<releaseNotes>https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md</releaseNotes>
@@ -192,7 +167,7 @@ https://github.com/nightroman/SplitPipeline#quick-start
 }
 
 # Synopsis: Push to the repository with a version tag.
-task PushRelease Version, {
+task pushRelease version, {
 	$changes = exec { git status --short }
 	assert (!$changes) "Please, commit changes."
 
@@ -202,31 +177,34 @@ task PushRelease Version, {
 }
 
 # Synopsis: Make and push the NuGet package.
-task PushNuGet NuGet, {
-	exec { NuGet push "$ModuleName.$Version.nupkg" -Source nuget.org }
+task pushNuGet nuget, {
+	$ApiKey = Read-Host ApiKey
+	exec { NuGet push "$ModuleName.$Version.nupkg" -Source nuget.org -ApiKey $ApiKey }
 },
-Clean
+clean
+
+# Synopsis: Make and push the PSGallery package.
+task pushPSGallery nuget, {
+	$NuGetApiKey = Read-Host NuGetApiKey
+	Publish-Module -Path z/tools/$ModuleName -NuGetApiKey $NuGetApiKey
+},
+clean
 
 # Synopsis: Complete the module for PSGallery.
-task Module Markdown, {
+task module markdown, {
 	# copy/move files
-	Copy-Item LICENSE.txt -Destination $ModuleRoot
-	Move-Item README.htm, Release-Notes.htm -Destination $ModuleRoot -Force
+	Copy-Item LICENSE -Destination $ModuleRoot
+	Move-Item README.htm -Destination $ModuleRoot -Force
 
 	# test all files
 	$r = (Get-ChildItem $ModuleRoot -Force -Recurse -Name) -join '*'
-	equals $r en-US*LICENSE.txt*README.htm*Release-Notes.htm*SplitPipeline.dll*SplitPipeline.psd1*en-US\about_SplitPipeline.help.txt*en-US\SplitPipeline.dll-Help.xml
+	equals $r en-US*LICENSE*README.htm*SplitPipeline.dll*SplitPipeline.psd1*en-US\about_SplitPipeline.help.txt*en-US\SplitPipeline.dll-Help.xml
 }
 
-# Synopsis: Test v2.
-task Test2 {
-	exec {PowerShell.exe -Version 2 Invoke-Build ** Tests}
-}
-
-# Synopsis: Test vN.
-task Test {
+# Synopsis: Tests.
+task test {
 	Invoke-Build ** Tests
 }
 
 # Synopsis: Build, test and clean all.
-task . Build, Test, Test2, TestHelp, Clean
+task . build, test, testHelp, clean

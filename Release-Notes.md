@@ -1,5 +1,8 @@
-
 # SplitPipeline Release Notes
+
+## v1.6.2
+
+Fixed #29, `WarningVariable` should be populated.
 
 ## v1.6.1
 

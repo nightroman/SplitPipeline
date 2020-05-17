@@ -73,3 +73,11 @@ task VerbosePreferenceInvalid {
 		Write-Verbose test-verbose
 	}
 }
+
+# Issue #29
+task WarningVariable {
+	1..2 | Split-Pipeline -WarningVariable WV {process{ Write-Warning "test-WarningVariable-$_" }}
+	equals $WV.Count 2
+	equals $WV[0].Message test-WarningVariable-1
+	equals $WV[1].Message test-WarningVariable-2
+}

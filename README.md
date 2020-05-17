@@ -1,5 +1,4 @@
-
-# Parallel Data Processing in PowerShell
+# SplitPipeline
 
 PowerShell v2.0+ module for parallel data processing. Split-Pipeline splits the
 input, processes parts by parallel pipelines, and outputs results. It may work
@@ -9,14 +8,14 @@ without collecting the whole input, large or infinite.
 
 **Step 1:** Get and install.
 
-SplitPipeline is distributed as the PowerShell Gallery module [SplitPipeline](https://www.powershellgallery.com/packages/SplitPipeline).
-In PowerShell 5.0 or with PowerShellGet you can install it by this command:
+SplitPipeline is available as the PSGallery module [SplitPipeline](https://www.powershellgallery.com/packages/SplitPipeline).
+In PowerShell 5.0+ or with PowerShellGet you can install it by this command:
 
     Install-Module SplitPipeline
 
 SplitPipeline is also available as the NuGet package [SplitPipeline](https://www.nuget.org/packages/SplitPipeline).
 Download it by NuGet tools or [directly](http://nuget.org/api/v2/package/SplitPipeline).
-In the latter case save it as *".zip"* and unzip. Use the package subdirectory *"tools/SplitPipeline"*.
+In the latter case save it as *".zip"*, unzip, and use the directory *"tools/SplitPipeline"*.
 
 **Step 2:** In a PowerShell command prompt import the module:
 
@@ -24,7 +23,6 @@ In the latter case save it as *".zip"* and unzip. Use the package subdirectory *
 
 **Step 3:** Take a look at help:
 
-    help about_SplitPipeline
     help -full Split-Pipeline
 
 **Step 4:** Try these three commands performing the same job simulating long
@@ -52,3 +50,7 @@ The third command takes about 2 seconds. The number of processors is not very
 important for such sleeping jobs. The split count is important. Increasing it
 to some extent improves overall performance. As for intensive jobs, the split
 count normally should not exceed the number of processors.
+
+## See also
+
+- [SplitPipeline Release Notes](https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md)
