@@ -45,6 +45,13 @@ Import-Module SplitPipeline
 
 	In rare scenarios when synchronous code must be invoked in pipelines,
 	use the helper $Pipeline.Lock, see the repository tests for examples.
+
+	ERROR PREFERENCE
+
+	If the current error preference is Stop and the internal pipelines emit
+	errors (even non-terminating) then Split-Pipeline treats these errors as
+	terminating per its current environment. To avoid this consider using
+	-ErrorAction Continue.
 '@
 	parameters = @{
 		Script = @'

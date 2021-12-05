@@ -1,5 +1,9 @@
 # SplitPipeline Release Notes
 
+## v1.6.3
+
+Add help about error preference, #30.
+
 ## v1.6.2
 
 Fixed #29, `WarningVariable` should be populated.
