@@ -81,3 +81,19 @@ task WarningVariable {
 	equals $WV[0].Message test-WarningVariable-1
 	equals $WV[1].Message test-WarningVariable-2
 }
+
+# Issue #32
+task Test-Start-Job {
+	$r = ./Test-Start-Job.ps1
+	$r | Out-String
+
+	# expected some saved time
+	assert ($r.Time -lt 10)
+
+	# expected 20 items with different PIDs
+	$data = $r.Data | Sort-Object Item
+	equals $data.Count 20
+	equals $data[0].Item 1
+	equals $data[19].Item 20
+	assert ($data[0].PID -ne $data[1].PID)
+}
