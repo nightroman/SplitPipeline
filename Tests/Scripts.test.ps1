@@ -1,4 +1,3 @@
-
 <#
 .Synopsis
 	Tests Split-Pipeline -Begin -Script -End -Finally.
@@ -10,8 +9,7 @@
 Import-Module SplitPipeline
 Set-StrictMode -Version Latest
 
-$Version = $PSVersionTable.PSVersion.Major
-$IsCore = $Version -eq 6 -and $PSVersionTable.PSEdition -eq 'Core'
+$IsCore = $PSVersionTable.PSEdition -eq 'Core'
 
 task Finally1 {
 	$1 = ''
@@ -34,9 +32,13 @@ task Finally2 {
 	assert ($result.Count -eq 2) $result.Count
 }
 
-task BeginProcessEnd -If (!$IsCore) {
+task BeginProcessEnd {
 	$DebugPreference = 'Continue'
-	$result = 1..4 | Split-Pipeline -Count 2 -Load 1 -Verbose `
+
+	# Desktop works with Continue and Stop
+	# Core works with Continue, fails with Stop in -Begin due to Write-Error
+	$ErrorAction = if ($IsCore) {'Continue'} else {'Stop'}
+	$result = 1..4 | Split-Pipeline -ErrorAction $ErrorAction -Count 2 -Load 1 -Verbose `
 	-Begin {
 		$DebugPreference = 'Continue'
 		$VerbosePreference = 'Continue'
