@@ -1,12 +1,7 @@
-*.dll
-*.htm
-*.nupkg
-*.suo
-*.user
-*.zip
-.vs
 bin
 obj
 z
-AssemblyInfo.cs
-SplitPipeline.psd1
+*.htm
+*.user
+Module/*.psd1
+Src/Directory.Build.props

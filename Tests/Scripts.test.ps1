@@ -35,10 +35,8 @@ task Finally2 {
 task BeginProcessEnd {
 	$DebugPreference = 'Continue'
 
-	# Desktop works with Continue and Stop
-	# Core works with Continue, fails with Stop in -Begin due to Write-Error
-	$ErrorAction = if ($IsCore) {'Continue'} else {'Stop'}
-	$result = 1..4 | Split-Pipeline -ErrorAction $ErrorAction -Count 2 -Load 1 -Verbose `
+	# Use error action Continue or Write-Error will stop
+	$result = 1..4 | Split-Pipeline -ErrorAction Continue -Count 2 -Load 1 -Verbose `
 	-Begin {
 		$DebugPreference = 'Continue'
 		$VerbosePreference = 'Continue'

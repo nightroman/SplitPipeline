@@ -225,7 +225,7 @@ Import-Module SplitPipeline
 	and works relatively fast.
 
 	See also another example with simulated slow data requests:
-	https://github.com/nightroman/SplitPipeline/blob/master/Tests/Test-Refill.ps1
+	https://github.com/nightroman/SplitPipeline/blob/main/Tests/Test-Refill.ps1
 '@
 			test = { . $args[0] }
 		}

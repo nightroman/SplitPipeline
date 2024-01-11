@@ -1,5 +1,11 @@
 # SplitPipeline Release Notes
 
+## v2.0.0
+
+- Designed for Windows PowerShell 5.1 and PowerShell Core
+- Built with PowerShellStandard.Library
+- Published at PSGallery only
+
 ## v1.6.3
 
 Add help about error preference, #30.
@@ -142,8 +148,7 @@ loops.
 
 New switch `Refill` tells to refill the input queue from output. `[ref]`
 objects are intercepted and added to the input queue. Other objects go to
-output as usual. See an example in help and
-[Test-Refill.ps1](https://github.com/nightroman/SplitPipeline/blob/master/Tests/Test-Refill.ps1).
+output as usual. See an example in help and `Test-Refill.ps1`.
 
 Tweaks in feeding parallel pipelines and automatic tuning of load.
 

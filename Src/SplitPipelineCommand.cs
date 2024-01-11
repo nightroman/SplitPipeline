@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
+using System.Reflection;
 using System.Threading;
 
 namespace SplitPipeline
@@ -115,11 +116,11 @@ namespace SplitPipeline
 		[Parameter]
 		public ApartmentState ApartmentState
 		{
-			get { return _iss.ApartmentState; }
-			set { _iss.ApartmentState = value; }
+			set => _ApartmentState = value;
 		}
+		ApartmentState? _ApartmentState;
 
-		readonly InitialSessionState _iss = InitialSessionState.CreateDefault();
+        readonly InitialSessionState _iss = InitialSessionState.CreateDefault();
 		readonly Queue<PSObject> _queue = new Queue<PSObject>();
 		readonly LinkedList<Job> _done = new LinkedList<Job>();
 		readonly LinkedList<Job> _work = new LinkedList<Job>();
@@ -398,7 +399,14 @@ Items /sec = {6}
 					if (node == null)
 					{
 						// v1.4.2 Runspaces use the same host as the cmdlet.
-						var job = new Job(RunspaceFactory.CreateRunspace(Host, _iss));
+						var runspace = RunspaceFactory.CreateRunspace(Host, _iss);
+						if (_ApartmentState.HasValue)
+						{
+							var info = typeof(Runspace).GetProperty("ApartmentState", BindingFlags.Public | BindingFlags.Instance);
+							info.SetValue(runspace, _ApartmentState.Value, null);
+						}
+
+                        var job = new Job(runspace);
 						node = new LinkedListNode<Job>(job);
 						_work.AddLast(node);
 						WriteResults(job, job.InvokeBegin(_Begin, _Script));

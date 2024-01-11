@@ -7,26 +7,22 @@ param(
 	$Configuration = 'Release'
 )
 
-# Module data.
+Set-StrictMode -Version 3
 $ModuleName = 'SplitPipeline'
-$ModuleRoot = "$env:ProgramW6432\WindowsPowerShell\Modules\$ModuleName"
+$ModuleRoot = "$env:ProgramFiles\WindowsPowerShell\Modules\$ModuleName"
 
-# Use MSBuild.
-Set-Alias MSBuild (Resolve-MSBuild)
-
-# Get version from release notes.
-function Get-Version {
-	switch -Regex -File Release-Notes.md {'##\s+v(\d+\.\d+\.\d+)' {return $Matches[1]} }
+# Synopsis: Remove temp files.
+task clean {
+	remove z, Src\bin, Src\obj, README.htm
 }
 
-# Synopsis: Generate or update meta files.
-task meta -Inputs Release-Notes.md, .build.ps1 -Outputs Module\$ModuleName.psd1, Src\AssemblyInfo.cs {
-	$Version = Get-Version
+# Synopsis: Generate meta files.
+task meta -Inputs $BuildFile, Release-Notes.md -Outputs "Module\$ModuleName.psd1", Src\Directory.Build.props -Jobs version, {
 	$Project = 'https://github.com/nightroman/SplitPipeline'
 	$Summary = 'SplitPipeline - Parallel Data Processing in PowerShell'
 	$Copyright = 'Copyright (c) Roman Kuzmin'
 
-	Set-Content Module\$ModuleName.psd1 @"
+	Set-Content "Module\$ModuleName.psd1" @"
 @{
 	Author = 'Roman Kuzmin'
 	ModuleVersion = '$Version'
@@ -34,9 +30,9 @@ task meta -Inputs Release-Notes.md, .build.ps1 -Outputs Module\$ModuleName.psd1,
 	CompanyName = '$Project'
 	Copyright = '$Copyright'
 
-	ModuleToProcess = '$ModuleName.dll'
+	RootModule = '$ModuleName.dll'
 
-	PowerShellVersion = '2.0'
+	PowerShellVersion = '5.1'
 	GUID = '7806b9d6-cb68-4e21-872a-aeec7174a087'
 
 	CmdletsToExport = 'Split-Pipeline'
@@ -49,122 +45,76 @@ task meta -Inputs Release-Notes.md, .build.ps1 -Outputs Module\$ModuleName.psd1,
 			Tags = 'Parallel', 'Pipeline', 'Runspace', 'Invoke', 'Foreach'
 			LicenseUri = 'http://www.apache.org/licenses/LICENSE-2.0'
 			ProjectUri = 'https://github.com/nightroman/SplitPipeline'
-			ReleaseNotes = 'https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md'
+			ReleaseNotes = 'https://github.com/nightroman/SplitPipeline/blob/main/Release-Notes.md'
 		}
 	}
 }
 "@
 
-	Set-Content Src\AssemblyInfo.cs @"
-using System;
-using System.Reflection;
-using System.Runtime.InteropServices;
-
-[assembly: AssemblyProduct("$ModuleName")]
-[assembly: AssemblyVersion("$Version")]
-[assembly: AssemblyTitle("$Summary")]
-[assembly: AssemblyCompany("$Project")]
-[assembly: AssemblyCopyright("$Copyright")]
-
-[assembly: ComVisible(false)]
-[assembly: CLSCompliant(false)]
+	Set-Content Src\Directory.Build.props @"
+<Project>
+	<PropertyGroup>
+		<Company>$Project</Company>
+		<Copyright>$Copyright</Copyright>
+		<Description>$Summary</Description>
+		<Product>$ModuleName</Product>
+		<Version>$Version</Version>
+		<IncludeSourceRevisionInInformationalVersion>False</IncludeSourceRevisionInInformationalVersion>
+	</PropertyGroup>
+</Project>
 "@
 }
 
-# Synopsis: Build, on post-build event copy files and make help.
+# Synopsis: Build, publish in post-build, make help.
 task build meta, {
-	exec { MSBuild Src\$ModuleName.csproj /t:Build /p:Configuration=$Configuration }
-}
-
-# Synopsis: Copy files to the module, then make help.
-# It is called from the post-build event.
-task postBuild {
-	exec { robocopy Module $ModuleRoot /s /np /r:0 /xf *-Help.ps1 } (0..3)
-	Copy-Item Src\Bin\$Configuration\$ModuleName.dll $ModuleRoot
+	exec { dotnet build "Src\$ModuleName.csproj" -c $Configuration }
 },
 ?help
 
-# Synopsis: Remove temp and info files.
-task clean {
-	remove Module\$ModuleName.psd1, "$ModuleName.*.nupkg", z, Src\bin, Src\obj, README.htm
+# Synopsis: Publish the module (post-build).
+task publish {
+	exec { robocopy Module $ModuleRoot /s /xf *-Help.ps1 } (0..3)
+	exec { dotnet publish Src\$ModuleName.csproj --no-build -c $Configuration -o $ModuleRoot }
+	remove $ModuleRoot\System.Management.Automation.dll, $ModuleRoot\*.deps.json
 }
 
 # Synopsis: Build help by https://github.com/nightroman/Helps
-task help -Inputs (
-	Get-Item Src\*.cs, Module\en-US\$ModuleName.dll-Help.ps1
-) -Outputs (
-	"$ModuleRoot\en-US\$ModuleName.dll-Help.xml"
-) {
+task help -Inputs @(Get-Item Src\*.cs, "Module\en-US\$ModuleName.dll-Help.ps1") -Outputs "$ModuleRoot\en-US\$ModuleName.dll-Help.xml" {
 	. Helps.ps1
-	Convert-Helps Module\en-US\$ModuleName.dll-Help.ps1 $Outputs
-}
-
-# Synopsis: Build and test help.
-task testHelp help, {
-	. Helps.ps1
-	Test-Helps Module\en-US\$ModuleName.dll-Help.ps1
-}
-
-# Synopsis: Convert markdown files to HTML.
-# <http://johnmacfarlane.net/pandoc/>
-task markdown {
-	exec { pandoc.exe --standalone --from=gfm --output=README.htm --metadata=pagetitle=$ModuleName README.md }
+	Convert-Helps "Module\en-US\$ModuleName.dll-Help.ps1" $Outputs
 }
 
 # Synopsis: Set $script:Version.
 task version {
-	($script:Version = Get-Version)
-	# module version
-	assert ((Get-Module $ModuleName -ListAvailable).Version -eq ([Version]$script:Version))
-	# assembly version
-	assert ((Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.FileVersion -eq ([Version]"$script:Version.0"))
+	($script:Version = switch -Regex -File Release-Notes.md {'##\s+v(\d+\.\d+\.\d+)' {$Matches[1]; break}})
 }
 
-# Synopsis: Make the package in z\tools.
-task package markdown, {
+# Synopsis: Convert markdown files to HTML.
+task markdown {
+	exec { pandoc.exe --standalone --from=gfm --output=README.htm --metadata=pagetitle=$ModuleName README.md }
+}
+
+# Synopsis: Make the package.
+task package markdown, version, {
+	assert ((Get-Module $ModuleName -ListAvailable).Version -eq ([Version]$Version))
+	assert ((Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.FileVersion -eq ([Version]"$Version.0"))
+
 	remove z
-	$null = mkdir z\tools\$ModuleName\en-US
+	exec { robocopy $ModuleRoot z\$ModuleName /s /xf *.pdb } (0..3)
 
-	Copy-Item -Destination z\tools\$ModuleName `
-	LICENSE,
-	README.htm,
-	$ModuleRoot\$ModuleName.dll,
-	$ModuleRoot\$ModuleName.psd1
+	Copy-Item LICENSE -Destination z\$ModuleName
+	Move-Item README.htm -Destination z\$ModuleName
 
-	Copy-Item -Destination z\tools\$ModuleName\en-US `
-	$ModuleRoot\en-US\about_$ModuleName.help.txt,
-	$ModuleRoot\en-US\$ModuleName.dll-Help.xml
+	$r = (Get-ChildItem z\$ModuleName -File -Force -Recurse -Name) -join '*'
+	equals $r LICENSE*README.htm*SplitPipeline.dll*SplitPipeline.psd1*en-US\about_SplitPipeline.help.txt*en-US\SplitPipeline.dll-Help.xml
 }
 
-# Synopsis: Make NuGet package.
-task nuget package, version, {
-	$description = @'
-PowerShell v2.0+ module for parallel data processing. Split-Pipeline splits the
-input, processes parts by parallel pipelines, and outputs results. It may work
-without collecting the whole input, large or infinite.
-'@
-
-	# nuspec
-	Set-Content z\Package.nuspec @"
-<?xml version="1.0"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-	<metadata>
-		<id>$ModuleName</id>
-		<version>$Version</version>
-		<owners>Roman Kuzmin</owners>
-		<authors>Roman Kuzmin</authors>
-		<license type="expression">Apache-2.0</license>
-		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<projectUrl>https://github.com/nightroman/SplitPipeline</projectUrl>
-		<description>$description</description>
-		<tags>PowerShell Module Parallel</tags>
-		<releaseNotes>https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md</releaseNotes>
-	</metadata>
-</package>
-"@
-	# pack
-	exec { NuGet pack z\Package.nuspec -NoPackageAnalysis }
-}
+# Synopsis: Make and push the PSGallery package.
+task pushPSGallery package, {
+	$NuGetApiKey = Read-Host NuGetApiKey
+	Publish-Module -Path z\$ModuleName -NuGetApiKey $NuGetApiKey
+},
+clean
 
 # Synopsis: Push to the repository with a version tag.
 task pushRelease version, {
@@ -176,35 +126,21 @@ task pushRelease version, {
 	exec { git push origin "v$Version" }
 }
 
-# Synopsis: Make and push the NuGet package.
-task pushNuGet nuget, {
-	$ApiKey = Read-Host ApiKey
-	exec { NuGet push "$ModuleName.$Version.nupkg" -Source nuget.org -ApiKey $ApiKey }
-},
-clean
-
-# Synopsis: Make and push the PSGallery package.
-task pushPSGallery nuget, {
-	$NuGetApiKey = Read-Host NuGetApiKey
-	Publish-Module -Path z/tools/$ModuleName -NuGetApiKey $NuGetApiKey
-},
-clean
-
-# Synopsis: Complete the module for PSGallery.
-task module markdown, {
-	# copy/move files
-	Copy-Item LICENSE -Destination $ModuleRoot
-	Move-Item README.htm -Destination $ModuleRoot -Force
-
-	# test all files
-	$r = (Get-ChildItem $ModuleRoot -Force -Recurse -Name) -join '*'
-	equals $r en-US*LICENSE*README.htm*SplitPipeline.dll*SplitPipeline.psd1*en-US\about_SplitPipeline.help.txt*en-US\SplitPipeline.dll-Help.xml
+task test_core {
+	exec { pwsh -NoProfile -Command Invoke-Build test }
 }
 
-# Synopsis: Tests.
+task test_desktop {
+	exec { powershell -NoProfile -Command Invoke-Build test }
+}
+
+# Synopsis: Test PowerShell editions.
+task tests test_core, test_desktop
+
+# Synopsis: Test current PowerShell.
 task test {
 	Invoke-Build ** Tests
 }
 
-# Synopsis: Build, test and clean all.
-task . build, test, testHelp, clean
+# Synopsis: Build and clean.
+task . build, clean

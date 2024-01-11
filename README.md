@@ -1,44 +1,55 @@
 # SplitPipeline
 
-PowerShell v2.0+ module for parallel data processing. Split-Pipeline splits the
-input, processes parts by parallel pipelines, and outputs results. It may work
-without collecting the whole input, large or infinite.
+PowerShell module for parallel data processing
+
+SplitPipeline is designed for Windows PowerShell 5.1 and PowerShell Core.
+It provides the only command `Split-Pipeline`.
+
+`Split-Pipeline` splits the input, processes parts by parallel pipelines, and
+outputs results. It may work without collecting the whole input, large or
+infinite.
 
 ## Quick Start
 
 **Step 1:** Get and install.
 
-SplitPipeline is available as the PSGallery module [SplitPipeline](https://www.powershellgallery.com/packages/SplitPipeline).
-In PowerShell 5.0+ or with PowerShellGet you can install it by this command:
+The module is published at the PSGallery: [SplitPipeline](https://www.powershellgallery.com/packages/SplitPipeline).
+It may be installed by this command:
 
-    Install-Module SplitPipeline
+```powershell
+Install-Module SplitPipeline
+```
 
-SplitPipeline is also available as the NuGet package [SplitPipeline](https://www.nuget.org/packages/SplitPipeline).
-Download it by NuGet tools or [directly](http://nuget.org/api/v2/package/SplitPipeline).
-In the latter case save it as *".zip"*, unzip, and use the directory *"tools/SplitPipeline"*.
+**Step 2:** Import the module:
 
-**Step 2:** In a PowerShell command prompt import the module:
-
-    Import-Module SplitPipeline
+```powershell
+Import-Module SplitPipeline
+```
 
 **Step 3:** Take a look at help:
 
-    help -full Split-Pipeline
+```powershell
+help Split-Pipeline
+```
 
 **Step 4:** Try these three commands performing the same job simulating long
 but not processor consuming operations on each item:
 
-    1..10 | . {process{ $_; sleep 1 }}
-    1..10 | Split-Pipeline {process{ $_; sleep 1 }}
-    1..10 | Split-Pipeline -Count 10 {process{ $_; sleep 1 }}
+```powershell
+1..10 | . {process{ $_; sleep 1 }}
+1..10 | Split-Pipeline {process{ $_; sleep 1 }}
+1..10 | Split-Pipeline -Count 10 {process{ $_; sleep 1 }}
+```
 
 Output of all commands is the same, numbers from 1 to 10 (Split-Pipeline does
 not guarantee the same order without the switch `Order`). But consumed times
 are different. Let's measure them:
 
-    Measure-Command { 1..10 | . {process{ $_; sleep 1 }} }
-    Measure-Command { 1..10 | Split-Pipeline {process{ $_; sleep 1 }} }
-    Measure-Command { 1..10 | Split-Pipeline -Count 10 {process{ $_; sleep 1 }} }
+```powershell
+Measure-Command { 1..10 | . {process{ $_; sleep 1 }} }
+Measure-Command { 1..10 | Split-Pipeline {process{ $_; sleep 1 }} }
+Measure-Command { 1..10 | Split-Pipeline -Count 10 {process{ $_; sleep 1 }} }
+```
 
 The first command takes about 10 seconds.
 
@@ -53,4 +64,4 @@ count normally should not exceed the number of processors.
 
 ## See also
 
-- [SplitPipeline Release Notes](https://github.com/nightroman/SplitPipeline/blob/master/Release-Notes.md)
+- [SplitPipeline Release Notes](https://github.com/nightroman/SplitPipeline/blob/main/Release-Notes.md)
