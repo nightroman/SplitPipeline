@@ -1,3 +1,5 @@
+[![PSGV](https://img.shields.io/powershellgallery/v/SplitPipeline)![PSGD](https://img.shields.io/powershellgallery/dt/SplitPipeline)](https://www.powershellgallery.com/packages/SplitPipeline)
+
 # SplitPipeline
 
 PowerShell module for parallel data processing
