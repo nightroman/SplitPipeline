@@ -13,7 +13,7 @@ $ModuleRoot = "$env:ProgramFiles\WindowsPowerShell\Modules\$ModuleName"
 
 # Synopsis: Remove temp files.
 task clean {
-	remove z, Src\bin, Src\obj, README.htm
+	remove z, Src\bin, Src\obj, README.html
 }
 
 # Synopsis: Generate meta files.
@@ -84,29 +84,34 @@ task help -Inputs @(Get-Item Src\*.cs, "Module\en-US\$ModuleName.dll-Help.ps1") 
 	Convert-Helps "Module\en-US\$ModuleName.dll-Help.ps1" $Outputs
 }
 
-# Synopsis: Set $script:Version.
+# Synopsis: Set $Script:Version.
 task version {
-	($script:Version = switch -Regex -File Release-Notes.md {'##\s+v(\d+\.\d+\.\d+)' {$Matches[1]; break}})
+	($Script:Version = Get-BuildVersion Release-Notes.md '##\s+v(\d+\.\d+\.\d+)')
 }
 
 # Synopsis: Convert markdown files to HTML.
 task markdown {
-	exec { pandoc.exe --standalone --from=gfm --output=README.htm --metadata=pagetitle=$ModuleName README.md }
+	exec { pandoc.exe --standalone --from=gfm --output=README.html --metadata=pagetitle=$ModuleName README.md }
 }
 
 # Synopsis: Make the package.
 task package markdown, version, {
-	assert ((Get-Module $ModuleName -ListAvailable).Version -eq ([Version]$Version))
-	assert ((Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.FileVersion -eq ([Version]"$Version.0"))
+	equals $Version (Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.ProductVersion
+	equals ([Version]$Version) (Get-Module $ModuleName -ListAvailable).Version
 
 	remove z
 	exec { robocopy $ModuleRoot z\$ModuleName /s /xf *.pdb } (0..3)
 
-	Copy-Item LICENSE -Destination z\$ModuleName
-	Move-Item README.htm -Destination z\$ModuleName
+	Copy-Item LICENSE, README.html -Destination z\$ModuleName
 
-	$r = (Get-ChildItem z\$ModuleName -File -Force -Recurse -Name) -join '*'
-	equals $r LICENSE*README.htm*SplitPipeline.dll*SplitPipeline.psd1*en-US\about_SplitPipeline.help.txt*en-US\SplitPipeline.dll-Help.xml
+	Assert-SameFile.ps1 -Result (Get-ChildItem z\$ModuleName -Recurse -File -Name) -Text -View $env:MERGE @'
+LICENSE
+README.html
+SplitPipeline.dll
+SplitPipeline.psd1
+en-US\about_SplitPipeline.help.txt
+en-US\SplitPipeline.dll-Help.xml
+'@
 }
 
 # Synopsis: Make and push the PSGallery package.
