@@ -1,26 +1,21 @@
-﻿// Copyright (c) Roman Kuzmin
-// http://www.apache.org/licenses/LICENSE-2.0
+﻿using System.Management.Automation;
 
-using System;
-using System.Management.Automation;
+namespace SplitPipeline;
 
-namespace SplitPipeline
+/// <summary>
+/// Pipeline helper methods exposed via the variable.
+/// </summary>
+public class Helper
 {
 	/// <summary>
-	/// Pipeline helper methods exposed via the variable.
+	/// Invokes the script with mutually exclusive lock.
 	/// </summary>
-	public class Helper
+	public object Lock(ScriptBlock script)
 	{
-		/// <summary>
-		/// Invokes the script with mutually exclusive lock.
-		/// </summary>
-		public object Lock(ScriptBlock script)
+		if (script == null) throw new ArgumentNullException("script");
+		lock (this)
 		{
-			if (script == null) throw new ArgumentNullException("script");
-			lock (this)
-			{
-				return script.InvokeReturnAsIs();
-			}
+			return script.InvokeReturnAsIs();
 		}
 	}
 }

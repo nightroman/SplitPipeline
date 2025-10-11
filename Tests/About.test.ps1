@@ -82,7 +82,7 @@ task WarningVariable {
 }
 
 # Issue #32
-task Test-Start-Job {
+task Test-Start-Job -If ($Host.Name -ne 'FarHost') {
 	$r = ./Test-Start-Job.ps1
 	$r | Out-String
 

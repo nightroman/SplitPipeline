@@ -131,16 +131,16 @@ task pushRelease version, {
 	exec { git push origin "v$Version" }
 }
 
-task test_core {
+task core {
 	exec { pwsh -NoProfile -Command Invoke-Build test }
 }
 
-task test_desktop {
+task desktop {
 	exec { powershell -NoProfile -Command Invoke-Build test }
 }
 
 # Synopsis: Test PowerShell editions.
-task tests test_core, test_desktop
+task tests core, desktop
 
 # Synopsis: Test current PowerShell.
 task test {
