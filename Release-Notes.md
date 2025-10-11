@@ -1,5 +1,9 @@
 # SplitPipeline Release Notes
 
+## v2.0.1
+
+Avoid double warnings, #29.
+
 ## v2.0.0
 
 - Designed for Windows PowerShell 5.1 and PowerShell Core

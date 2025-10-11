@@ -530,10 +530,11 @@ Items /sec = {6}
 
 		// ensure warnings are added to the variable
 		// https://github.com/nightroman/SplitPipeline/issues/29
-		if (streams.Warning.Count > 0 && MyInvocation.BoundParameters.TryGetValue("WarningVariable", out _))
+		if (streams.Warning.Count > 0 && MyInvocation.BoundParameters.TryGetValue("WarningVariable", out var warningVariable))
 		{
+			var list = (ArrayList)GetVariableValue((string)warningVariable);
 			foreach (var record in streams.Warning)
-				WriteWarning(record.Message);
+				list.Add(record);
 		}
 
 		// v1.4.2 Debug, progress, verbose, and warning messages are written to the host.

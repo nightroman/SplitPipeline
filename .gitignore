@@ -3,5 +3,6 @@ obj
 z
 *.htm
 *.user
+launchSettings.json
 Module/*.psd1
 Src/Directory.Build.props

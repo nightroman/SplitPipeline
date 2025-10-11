@@ -67,9 +67,8 @@ task meta -Inputs $BuildFile, Release-Notes.md -Outputs "Module\$ModuleName.psd1
 
 # Synopsis: Build, publish in post-build, make help.
 task build meta, {
-	exec { dotnet build "Src\$ModuleName.csproj" -c $Configuration }
-},
-?help
+	exec { dotnet build "Src\$ModuleName.csproj" -c $Configuration --tl:off }
+}
 
 # Synopsis: Publish the module (post-build).
 task publish {
@@ -79,7 +78,7 @@ task publish {
 }
 
 # Synopsis: Build help by https://github.com/nightroman/Helps
-task help -Inputs @(Get-Item Src\*.cs, "Module\en-US\$ModuleName.dll-Help.ps1") -Outputs "$ModuleRoot\en-US\$ModuleName.dll-Help.xml" {
+task help -After ?build -Inputs @(Get-Item Src\*.cs, "Module\en-US\$ModuleName.dll-Help.ps1") -Outputs "$ModuleRoot\en-US\$ModuleName.dll-Help.xml" {
 	. Helps.ps1
 	Convert-Helps "Module\en-US\$ModuleName.dll-Help.ps1" $Outputs
 }
@@ -131,21 +130,23 @@ task pushRelease version, {
 	exec { git push origin "v$Version" }
 }
 
+# Synopsis: Run tests.
+task test {
+	Invoke-Build ** Tests
+}
+
+# Synopsis: Test Core.
 task core {
 	exec { pwsh -NoProfile -Command Invoke-Build test }
 }
 
+# Synopsis: Test Desktop.
 task desktop {
 	exec { powershell -NoProfile -Command Invoke-Build test }
 }
 
-# Synopsis: Test PowerShell editions.
-task tests core, desktop
-
-# Synopsis: Test current PowerShell.
-task test {
-	Invoke-Build ** Tests
-}
+# Synopsis: Test editions.
+task tests desktop, core
 
 # Synopsis: Build and clean.
 task . build, clean
