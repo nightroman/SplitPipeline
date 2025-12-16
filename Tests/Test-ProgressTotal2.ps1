@@ -5,6 +5,10 @@
 .Description
 	This sample is the simplified variant of Test-ProgressTotal.ps1.
 	The helper $Pipeline.Lock was introduced for scenarios like this.
+
+.Notes
+	[hashtable]::Synchronized() or concurrent dictionary are tempting but not
+	suitable for increments or counters due to their not atomic nature.
 #>
 
 Import-Module SplitPipeline
@@ -27,7 +31,7 @@ $items | Split-Pipeline -Count 5 -Variable data {process{
 	$done = $Pipeline.Lock({ $done = ++$data.Done; $done })
 
 	# show progress
-	Write-Progress -Activity "Done $done" -Status Processing -PercentComplete (100*$done/$data.Count)
+	Write-Progress -Activity "Done $done" -Status Processing -PercentComplete (100 * $done / $data.Count)
 }}
 
 # assert

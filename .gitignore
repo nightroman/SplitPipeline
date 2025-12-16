@@ -1,7 +1,8 @@
 bin
 obj
 z
-*.htm
+z.*
+*.html
 *.user
 launchSettings.json
 Module/*.psd1

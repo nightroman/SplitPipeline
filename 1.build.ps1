@@ -8,8 +8,8 @@ param(
 )
 
 Set-StrictMode -Version 3
-$ModuleName = 'SplitPipeline'
-$ModuleRoot = "$env:ProgramFiles\WindowsPowerShell\Modules\$ModuleName"
+$_name = 'SplitPipeline'
+$_root = "$env:ProgramFiles\WindowsPowerShell\Modules\$_name"
 
 # Synopsis: Remove temp files.
 task clean {
@@ -17,20 +17,20 @@ task clean {
 }
 
 # Synopsis: Generate meta files.
-task meta -Inputs $BuildFile, Release-Notes.md -Outputs "Module\$ModuleName.psd1", Src\Directory.Build.props -Jobs version, {
+task meta -Inputs $BuildFile, Release-Notes.md -Outputs "Module\$_name.psd1", Src\Directory.Build.props -Jobs version, {
 	$Project = 'https://github.com/nightroman/SplitPipeline'
 	$Summary = 'SplitPipeline - Parallel Data Processing in PowerShell'
 	$Copyright = 'Copyright (c) Roman Kuzmin'
 
-	Set-Content "Module\$ModuleName.psd1" @"
+	Set-Content "Module\$_name.psd1" @"
 @{
 	Author = 'Roman Kuzmin'
-	ModuleVersion = '$Version'
+	ModuleVersion = '$_version'
 	Description = '$Summary'
 	CompanyName = '$Project'
 	Copyright = '$Copyright'
 
-	RootModule = '$ModuleName.dll'
+	RootModule = '$_name.dll'
 
 	PowerShellVersion = '5.1'
 	GUID = '7806b9d6-cb68-4e21-872a-aeec7174a087'
@@ -57,8 +57,8 @@ task meta -Inputs $BuildFile, Release-Notes.md -Outputs "Module\$ModuleName.psd1
 		<Company>$Project</Company>
 		<Copyright>$Copyright</Copyright>
 		<Description>$Summary</Description>
-		<Product>$ModuleName</Product>
-		<Version>$Version</Version>
+		<Product>$_name</Product>
+		<Version>$_version</Version>
 		<IncludeSourceRevisionInInformationalVersion>False</IncludeSourceRevisionInInformationalVersion>
 	</PropertyGroup>
 </Project>
@@ -67,43 +67,43 @@ task meta -Inputs $BuildFile, Release-Notes.md -Outputs "Module\$ModuleName.psd1
 
 # Synopsis: Build, publish in post-build, make help.
 task build meta, {
-	exec { dotnet build "Src\$ModuleName.csproj" -c $Configuration --tl:off }
+	exec { dotnet build "Src\$_name.csproj" -c $Configuration --tl:off }
 }
 
 # Synopsis: Publish the module (post-build).
 task publish {
-	exec { robocopy Module $ModuleRoot /s /xf *-Help.ps1 } (0..3)
-	exec { dotnet publish Src\$ModuleName.csproj --no-build -c $Configuration -o $ModuleRoot }
-	remove $ModuleRoot\System.Management.Automation.dll, $ModuleRoot\*.deps.json
+	exec { robocopy Module $_root /s /xf *-Help.ps1 } (0..3)
+	exec { dotnet publish Src\$_name.csproj --no-build -c $Configuration -o $_root }
+	remove $_root\System.Management.Automation.dll, $_root\*.deps.json
 }
 
 # Synopsis: Build help by https://github.com/nightroman/Helps
-task help -After ?build -Inputs @(Get-Item Src\*.cs, "Module\en-US\$ModuleName.dll-Help.ps1") -Outputs "$ModuleRoot\en-US\$ModuleName.dll-Help.xml" {
+task help -After ?build -Inputs @(Get-Item Src\*.cs, "Module\en-US\$_name.dll-Help.ps1") -Outputs "$_root\en-US\$_name.dll-Help.xml" {
 	. Helps.ps1
-	Convert-Helps "Module\en-US\$ModuleName.dll-Help.ps1" $Outputs
+	Convert-Helps "Module\en-US\$_name.dll-Help.ps1" $Outputs
 }
 
-# Synopsis: Set $Script:Version.
+# Synopsis: Set $Script:_version.
 task version {
-	($Script:Version = Get-BuildVersion Release-Notes.md '##\s+v(\d+\.\d+\.\d+)')
+	($Script:_version = Get-BuildVersion Release-Notes.md '##\s+v(\d+\.\d+\.\d+)')
 }
 
 # Synopsis: Convert markdown files to HTML.
 task markdown {
-	exec { pandoc.exe --standalone --from=gfm --output=README.html --metadata=pagetitle=$ModuleName README.md }
+	exec { pandoc.exe --standalone --from=gfm --output=README.html --metadata=pagetitle=$_name README.md }
 }
 
 # Synopsis: Make the package.
 task package markdown, version, {
-	equals $Version (Get-Item $ModuleRoot\$ModuleName.dll).VersionInfo.ProductVersion
-	equals ([Version]$Version) (Get-Module $ModuleName -ListAvailable).Version
+	equals $_version (Get-Item $_root\$_name.dll).VersionInfo.ProductVersion
+	equals ([Version]$_version) (Get-Module $_name -ListAvailable).Version
 
 	remove z
-	exec { robocopy $ModuleRoot z\$ModuleName /s /xf *.pdb } (0..3)
+	exec { robocopy $_root z\$_name /s /xf *.pdb } (0..3)
 
-	Copy-Item LICENSE, README.html -Destination z\$ModuleName
+	Copy-Item LICENSE, README.html -Destination z\$_name
 
-	Assert-SameFile.ps1 -Result (Get-ChildItem z\$ModuleName -Recurse -File -Name) -Text -View $env:MERGE @'
+	Assert-SameFile.ps1 -Result (Get-ChildItem z\$_name -Recurse -File -Name) -Text -View $env:MERGE @'
 LICENSE
 README.html
 SplitPipeline.dll
@@ -116,7 +116,7 @@ en-US\SplitPipeline.dll-Help.xml
 # Synopsis: Make and push the PSGallery package.
 task pushPSGallery package, {
 	$NuGetApiKey = Read-Host NuGetApiKey
-	Publish-Module -Path z\$ModuleName -NuGetApiKey $NuGetApiKey
+	Publish-Module -Path z\$_name -NuGetApiKey $NuGetApiKey
 },
 clean
 
@@ -126,8 +126,8 @@ task pushRelease version, {
 	assert (!$changes) "Please, commit changes."
 
 	exec { git push }
-	exec { git tag -a "v$Version" -m "v$Version" }
-	exec { git push origin "v$Version" }
+	exec { git tag -a "v$_version" -m "v$_version" }
+	exec { git push origin "v$_version" }
 }
 
 # Synopsis: Run tests.

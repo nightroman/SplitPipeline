@@ -1,4 +1,3 @@
-
 <#
 .Synopsis
 	How to use Write-Progress in jobs to show the total progress.
@@ -11,6 +10,10 @@
 
 	Note that Done is updated in a critical section. Use of try/finally there
 	may be redundant in this trivial example but this is the standard pattern.
+
+.Notes
+	[hashtable]::Synchronized() or concurrent dictionary are tempting but not
+	suitable for increments or counters due to their not atomic nature.
 #>
 
 Import-Module SplitPipeline
@@ -29,7 +32,7 @@ $items | Split-Pipeline -Count 5 -Variable data {process{
 	Start-Sleep -Milliseconds (Get-Random -Maximum 500)
 
 	# enter the critical section
-	[System.Threading.Monitor]::Enter($data)
+	[System.Threading.Monitor]::Enter($data.SyncRoot)
 	try {
 		# update shared data
 		$done = ++$data.Done
@@ -40,7 +43,7 @@ $items | Split-Pipeline -Count 5 -Variable data {process{
 	}
 
 	# show progress
-	Write-Progress -Activity "Done $done" -Status Processing -PercentComplete (100*$done/$data.Count)
+	Write-Progress -Activity "Done $done" -Status Processing -PercentComplete (100 * $done / $data.Count)
 }}
 
 # assert
